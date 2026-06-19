@@ -37,7 +37,7 @@ jobs:
           python-version: '3.11'
       - name: Instalar
         run: pip install gspread google-auth
-      - name: Enviar e-mail
+      - name: Enviar email
         env:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
