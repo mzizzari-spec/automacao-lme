@@ -339,9 +339,9 @@ def recalcular_aba(planilha, aba, ano, mes):
 
     # Atualiza aba
     aba.clear()
-    aba.update("A1", todas_linhas)
+    aba.update(values=todas_linhas, range_name="A1")
     print(f"✅ Aba atualizada: {len(reais)} reais + {len(todos)-len(reais)} projetados.")
-    return [l for l in todas_linhas[1:] if isinstance(l[2], str) and l[2] in ("Real", "Projetado")]
+    return [l for l in todas_linhas[1:] if len(l) > 2 and isinstance(l[2], str) and l[2] in ("Real", "Projetado")]
 
 
 def calcular_media_semana(linhas):
@@ -423,7 +423,7 @@ def atualizar_resumo_mensal(planilha, aba, ano, mes):
 
     # Grava abaixo dos dados existentes
     linha_inicio = num_linhas + 2
-    aba.update(f"A{linha_inicio}", linhas_resumo)
+    aba.update(values=linhas_resumo, range_name=f"A{linha_inicio}")
     print(f"✅ Resumo mensal atualizado com {len(resumo)} meses.")
 
 
@@ -455,7 +455,7 @@ def atualizar_consolidado(planilha):
         except Exception as e:
             print(f"  ⚠️  Erro ao ler aba {ws.title}: {e}")
 
-    consolidado.update("A1", linhas_consolidado)
+    consolidado.update(values=linhas_consolidado, range_name="A1")
     print(f"✅ Consolidado atualizado: {len(linhas_consolidado)-1} linhas.")
 
 
