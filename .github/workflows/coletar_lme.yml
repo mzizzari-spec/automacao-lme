@@ -1,40 +1,35 @@
-Script: coletar_lme.py
-Função: Coleta dados de Cobre, Alumínio e Dólar do site shockmetais.com.br/lme
-        e grava na planilha do Google Sheets automaticamente.
-Roda: Todo dia às 7h via GitHub Actions
+name: Coleta Diária LME
 
-import os
-import re
-import json
-from datetime import datetime, timedelta
+on:
+  schedule:
+    - cron: '0 10 * * 1-5'
 
-import requests
-from bs4 import BeautifulSoup
-import gspread
-from google.oauth2.service_account import Credentials
+  workflow_dispatch:
 
+jobs:
+  coletar-lme:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
 
-# ─────────────────────────────────────────
-# CONFIGURAÇÕES — edite apenas estas linhas
-# ─────────────────────────────────────────
-GOOGLE_SHEET_ID = os.environ.get("GOOGLE_SHEET_ID", "")   # ID da sua planilha Google Sheets
-ABA_DADOS = "Dados LME"                                    # Nome da aba onde os dados ficam
-URL_SITE = "https://shockmetais.com.br/lme"
-# ─────────────────────────────────────────
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
 
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-def conectar_google_sheets():
-    """Conecta na API do Google Sheets usando as credenciais do GitHub Secret."""
-    creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
-    if not creds_json:
-        raise ValueError("Secret GOOGLE_CREDENTIALS_JSON não encontrado!")
+      - name: Instalar dependências
+        run: |
+          pip install requests beautifulsoup4 gspread google-auth
 
-    creds_dict = json.loads(creds_json)
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+      - name: Executar coleta
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+        run: |
+          python scripts/coletar_lme.py    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     client = gspread.authorize(creds)
     return client
 
