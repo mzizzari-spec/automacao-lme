@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -108,7 +107,19 @@ var chartObj = null;
 function fmt(v, dec) {
   if (dec === undefined) dec = 2;
   if (v === null || v === undefined || v === '') return '-';
-  var num = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
+  var s = String(v).trim();
+  var num;
+  if (s.indexOf(',') !== -1 && s.indexOf('.') !== -1) {
+    // formato 13.612,00 -> remove ponto e troca virgula por ponto
+    s = s.replace(/\./g, '').replace(',', '.');
+    num = parseFloat(s);
+  } else if (s.indexOf(',') !== -1) {
+    // formato 13,612 -> troca virgula por ponto
+    s = s.replace(',', '.');
+    num = parseFloat(s);
+  } else {
+    num = parseFloat(s);
+  }
   if (isNaN(num)) return '-';
   return num.toLocaleString('pt-BR', {minimumFractionDigits: dec, maximumFractionDigits: dec});
 }
