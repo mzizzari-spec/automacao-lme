@@ -45,8 +45,16 @@ def fmt(v, dec=2):
     if v is None or v == "":
         return "-"
     try:
-        num = float(str(v).replace(",", "."))
-        return f"{num:,.{dec}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        s = str(v).strip()
+        if "," in s and "." in s:
+            s = s.replace(".", "").replace(",", ".")
+        elif "," in s:
+            s = s.replace(",", ".")
+        num = float(s)
+        formatted = f"{num:,.{dec}f}"
+        return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+    except:
+        return "-"
     except:
         return "-"
 
