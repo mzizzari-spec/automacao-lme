@@ -150,7 +150,7 @@ def obter_dados_ontem():
         colunas = linha.find_all("td")
         if not colunas:
             continue
-       dia_celula = colunas[0].get_text(strip=True)
+        dia_celula = colunas[0].get_text(strip=True)
         if dia_site in dia_celula:
             cobre = limpar_numero(colunas[1].get_text(strip=True), americano=True)
             aluminio = limpar_numero(colunas[3].get_text(strip=True), americano=True)
