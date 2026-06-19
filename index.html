@@ -1,0 +1,648 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LME — Cotações de Metais</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3250;
+    --copper: #e07b39;
+    --aluminium: #6c9fd8;
+    --dollar: #52c87a;
+    --projected: #8b8fa8;
+    --text: #e8eaf2;
+    --text-dim: #6b7094;
+    --real-badge: #1e3a2f;
+    --real-text: #52c87a;
+    --proj-badge: #1e2240;
+    --proj-text: #6c9fd8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-left h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .header-left h1 span {
+    color: var(--copper);
+  }
+
+  .header-left p {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+
+  .month-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .month-selector label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .month-selector select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .month-selector select:focus {
+    border-color: var(--copper);
+  }
+
+  /* CARDS */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .card-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .card-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+  }
+
+  .card-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .card.copper .card-value { color: var(--copper); }
+  .card.aluminium .card-value { color: var(--aluminium); }
+  .card.dollar .card-value { color: var(--dollar); }
+
+  .card-section-title {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  /* CHART */
+  .chart-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .chart-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  canvas { max-height: 260px; }
+
+  /* TABLE */
+  .table-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-title {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+
+  tbody td {
+    padding: 10px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  tbody td:first-child {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  tbody td:nth-child(2) {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-real { background: var(--real-badge); color: var(--real-text); }
+  .badge-proj { background: var(--proj-badge); color: var(--proj-text); }
+
+  .media-row td {
+    font-weight: 600;
+    color: var(--text) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 12px !important;
+    background: var(--surface2);
+    border-top: 2px solid var(--border);
+  }
+
+  .media-real-row td { color: var(--real-text) !important; }
+  .media-proj-row td { color: var(--proj-text) !important; }
+
+  /* LOADING / ERROR */
+  .state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--copper);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .updated {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  @media (max-width: 900px) {
+    .cards { grid-template-columns: repeat(3, 1fr); }
+    header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  }
+
+  @media (max-width: 600px) {
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    body { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-left">
+      <h1>LME <span>Metais</span></h1>
+      <p id="updated-at">Carregando dados...</p>
+    </div>
+    <div class="month-selector">
+      <label>Mês</label>
+      <select id="month-select" onchange="filtrarMes()">
+        <option value="">Carregando...</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- CARDS -->
+  <div class="cards" id="cards">
+    <div class="state" style="grid-column:1/-1">
+      <div class="spinner"></div>
+      Carregando cotações...
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-wrapper">
+    <div class="chart-header">
+      <span class="chart-title">Evolução do mês</span>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--copper)"></div>Cobre</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--aluminium)"></div>Alumínio</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--dollar)"></div>Dólar</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--border);border:1px dashed var(--projected)"></div>Projetado</div>
+      </div>
+    </div>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrapper">
+    <div class="table-header">
+      <span class="table-title">Cotações diárias</span>
+      <span class="updated" id="total-dias"></span>
+    </div>
+    <div id="table-container">
+      <div class="state"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SHEET_ID = '10XV0A_U4LvG4Yc1a8lOjw81njnlu9lGjTHFTRGxHUHQ';
+const ABA = 'Consolidado';
+const URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(ABA)}`;
+
+let todosOsDados = [];
+let chart = null;
+
+async function carregarDados() {
+  try {
+    const resp = await fetch(URL);
+    const text = await resp.text();
+    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+    const rows = json.table.rows;
+    const cols = json.table.cols.map(c => c.label);
+
+    todosOsDados = rows.map(row => {
+      const obj = {};
+      cols.forEach((col, i) => {
+        obj[col] = row.c[i] ? row.c[i].v : null;
+      });
+      return obj;
+    }).filter(r => r['Tipo'] === 'Real' || r['Tipo'] === 'Projetado');
+
+    popularMeses();
+    filtrarMes();
+
+    const agora = new Date();
+    document.getElementById('updated-at').textContent =
+      `Atualizado em ${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}`;
+
+  } catch(e) {
+    document.getElementById('cards').innerHTML =
+      `<div class="state" style="grid-column:1/-1">⚠️ Erro ao carregar dados. Verifique se a planilha está pública.</div>`;
+    console.error(e);
+  }
+}
+
+function popularMeses() {
+  const meses = [...new Set(todosOsDados.map(r => r['Mês']))].filter(Boolean).reverse();
+  const sel = document.getElementById('month-select');
+  sel.innerHTML = meses.map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+function filtrarMes() {
+  const mes = document.getElementById('month-select').value;
+  const dados = todosOsDados.filter(r => r['Mês'] === mes);
+  renderCards(dados);
+  renderChart(dados);
+  renderTable(dados);
+}
+
+function media(arr, campo, tipo) {
+  const vals = arr.filter(r => tipo ? r['Tipo'] === tipo : true)
+                   .map(r => parseFloat(r[campo]))
+                   .filter(v => !isNaN(v) && v > 0);
+  if (!vals.length) return null;
+  return vals.reduce((a,b) => a+b, 0) / vals.length;
+}
+
+function fmt(v, dec=2) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return v.toLocaleString('pt-BR', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+}
+
+function renderCards(dados) {
+  const mR_cobre = media(dados, 'Cobre (US$/t)', 'Real');
+  const mP_cobre = media(dados, 'Cobre (US$/t)');
+  const mR_al = media(dados, 'Alumínio (US$/t)', 'Real');
+  const mP_al = media(dados, 'Alumínio (US$/t)');
+  const mR_dol = media(dados, 'Dólar (R$/US$)', 'Real');
+  const mP_dol = media(dados, 'Dólar (R$/US$)');
+
+  document.getElementById('cards').innerHTML = `
+    <div class="card-section-title">Média Real</div>
+    <div class="card copper">
+      <div class="card-label">Cobre</div>
+      <div class="card-value">${fmt(mR_cobre, 0)}</div>
+      <div class="card-sub">US$/t</div>
+    </div>
+    <div class="card aluminium">
+      <div class="card-label">Alumínio</div>
+      <div class="card-value">${fmt(mR_al, 0)}</div>
+      <div class="card-sub">US$/t</div>
+    </div>
+    <div class="card dollar">
+      <div class="card-label">Dólar</div>
+      <div class="card-value">${fmt(mR_dol, 4)}</div>
+      <div class="card-sub">R$/US$</div>
+    </div>
+    <div class="card-section-title">Média Projetada</div>
+    <div class="card copper">
+      <div class="card-label">Cobre</div>
+      <div class="card-value">${fmt(mP_cobre, 0)}</div>
+      <div class="card-sub">US$/t</div>
+    </div>
+    <div class="card aluminium">
+      <div class="card-label">Alumínio</div>
+      <div class="card-value">${fmt(mP_al, 0)}</div>
+      <div class="card-sub">US$/t</div>
+    </div>
+    <div class="card dollar">
+      <div class="card-label">Dólar</div>
+      <div class="card-value">${fmt(mP_dol, 4)}</div>
+      <div class="card-sub">R$/US$</div>
+    </div>
+  `;
+}
+
+function renderChart(dados) {
+  const labels = dados.map(r => r['Data'] ? r['Data'].substring(0,5) : '');
+  const reais = dados.map(r => r['Tipo'] === 'Real' ? parseFloat(r['Cobre (US$/t)']) : null);
+  const proj = dados.map(r => r['Tipo'] === 'Projetado' ? parseFloat(r['Cobre (US$/t)']) : null);
+  const al = dados.map(r => parseFloat(r['Alumínio (US$/t)']));
+  const dol = dados.map(r => parseFloat(r['Dólar (R$/US$)']));
+
+  if (chart) chart.destroy();
+
+  const ctx = document.getElementById('chart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Cobre Real',
+          data: reais,
+          borderColor: '#e07b39',
+          backgroundColor: 'rgba(224,123,57,0.08)',
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.3,
+          spanGaps: false,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Cobre Projetado',
+          data: proj,
+          borderColor: '#e07b39',
+          borderDash: [4,4],
+          borderWidth: 1.5,
+          pointRadius: 2,
+          tension: 0.3,
+          spanGaps: false,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Alumínio',
+          data: al,
+          borderColor: '#6c9fd8',
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.3,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Dólar',
+          data: dol,
+          borderColor: '#52c87a',
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.3,
+          yAxisID: 'y2',
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1d27',
+          borderColor: '#2e3250',
+          borderWidth: 1,
+          titleColor: '#e8eaf2',
+          bodyColor: '#8b8fa8',
+          padding: 10,
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#1e2235' },
+          ticks: { color: '#6b7094', font: { size: 11 } }
+        },
+        y: {
+          position: 'left',
+          grid: { color: '#1e2235' },
+          ticks: { color: '#6b7094', font: { size: 11 } },
+          title: { display: true, text: 'US$/t', color: '#6b7094', font: { size: 11 } }
+        },
+        y2: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#52c87a', font: { size: 11 } },
+          title: { display: true, text: 'R$/US$', color: '#52c87a', font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+function renderTable(dados) {
+  const reais = dados.filter(r => r['Tipo'] === 'Real');
+  const todos = dados;
+
+  const mR = {
+    cobre: media(dados, 'Cobre (US$/t)', 'Real'),
+    al: media(dados, 'Alumínio (US$/t)', 'Real'),
+    dol: media(dados, 'Dólar (R$/US$)', 'Real'),
+    cobreKg: media(dados, 'Cobre (R$/kg)', 'Real'),
+    alKg: media(dados, 'Alumínio (R$/kg)', 'Real'),
+  };
+  const mP = {
+    cobre: media(dados, 'Cobre (US$/t)'),
+    al: media(dados, 'Alumínio (US$/t)'),
+    dol: media(dados, 'Dólar (R$/US$)'),
+    cobreKg: media(dados, 'Cobre (R$/kg)'),
+    alKg: media(dados, 'Alumínio (R$/kg)'),
+  };
+
+  const linhas = dados.map(r => `
+    <tr>
+      <td>${r['Data'] || ''}</td>
+      <td>${r['Dia da Semana'] || ''}</td>
+      <td><span class="badge ${r['Tipo']==='Real'?'badge-real':'badge-proj'}">${r['Tipo']}</span></td>
+      <td>${fmt(parseFloat(r['Cobre (US$/t)']), 2)}</td>
+      <td>${fmt(parseFloat(r['Alumínio (US$/t)']), 2)}</td>
+      <td>${fmt(parseFloat(r['Dólar (R$/US$)']), 4)}</td>
+      <td>${fmt(parseFloat(r['Cobre (R$/kg)']), 4)}</td>
+      <td>${fmt(parseFloat(r['Alumínio (R$/kg)']), 4)}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('table-container').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Dia</th>
+          <th>Tipo</th>
+          <th>Cobre US$/t</th>
+          <th>Alumínio US$/t</th>
+          <th>Dólar R$/US$</th>
+          <th>Cobre R$/kg</th>
+          <th>Alumínio R$/kg</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${linhas}
+        <tr class="media-row media-real-row">
+          <td colspan="3">Média Real</td>
+          <td>${fmt(mR.cobre, 2)}</td>
+          <td>${fmt(mR.al, 2)}</td>
+          <td>${fmt(mR.dol, 4)}</td>
+          <td>${fmt(mR.cobreKg, 4)}</td>
+          <td>${fmt(mR.alKg, 4)}</td>
+        </tr>
+        <tr class="media-row media-proj-row">
+          <td colspan="3">Média Projetada</td>
+          <td>${fmt(mP.cobre, 2)}</td>
+          <td>${fmt(mP.al, 2)}</td>
+          <td>${fmt(mP.dol, 4)}</td>
+          <td>${fmt(mP.cobreKg, 4)}</td>
+          <td>${fmt(mP.alKg, 4)}</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+
+  document.getElementById('total-dias').textContent =
+    `${reais.length} dias reais · ${todos.length - reais.length} projetados`;
+}
+
+carregarDados();
+</script>
+</body>
+</html>
