@@ -131,7 +131,7 @@ def para_float(valor):
 
 def calc_kg(usd_t, dolar):
     if usd_t and dolar:
-        return round((usd_t * dolar) / 1000, 2)
+        return round((usd_t * dolar) / 1000, 4)
     return None
 
 def calc_variacao(atual, anterior):
@@ -459,6 +459,66 @@ def atualizar_consolidado(planilha):
     print(f"✅ Consolidado atualizado: {len(linhas_consolidado)-1} linhas.")
 
 
+def atualizar_historico(planilha, ano, mes):
+    """Adiciona o mês atual ao Historico se ainda não existir."""
+    nome_mes = nome_aba(ano, mes)
+    try:
+        aba_mes = planilha.worksheet(nome_mes)
+        dados_mes = aba_mes.get_all_values()
+    except:
+        return
+
+    # Busca linha Média Real da aba do mês
+    media_real = next((l for l in dados_mes if l and l[0] == "Média Real"), None)
+    if not media_real or len(media_real) < 12:
+        return
+
+    # Monta linha do resumo
+    label = nome_mes
+    nova_linha = [
+        label,
+        para_float(media_real[7]), None,  # dolar, var
+        para_float(media_real[3]), None,  # cobre, var
+        para_float(media_real[5]), None,  # aluminio, var
+        para_float(media_real[9]), None,  # cobre_kg, var
+        para_float(media_real[11]), None, # aluminio_kg, var
+    ]
+
+    try:
+        hist = planilha.worksheet("Historico")
+    except gspread.WorksheetNotFound:
+        print("⚠️  Aba Historico não encontrada. Rode importar_historico primeiro.")
+        return
+
+    todos = hist.get_all_values()
+    labels_existentes = [l[0] for l in todos if l]
+
+    if label in labels_existentes:
+        # Atualiza linha existente
+        idx = labels_existentes.index(label)
+        # Calcula variação em relação ao mês anterior
+        if idx > 1:
+            anterior = todos[idx - 1]
+            nova_linha[2] = calc_variacao(nova_linha[1], para_float(anterior[1]))  # var dolar
+            nova_linha[4] = calc_variacao(nova_linha[3], para_float(anterior[3]))  # var cobre
+            nova_linha[6] = calc_variacao(nova_linha[5], para_float(anterior[5]))  # var aluminio
+            nova_linha[8] = calc_variacao(nova_linha[7], para_float(anterior[7]))  # var cobre_kg
+            nova_linha[10] = calc_variacao(nova_linha[9], para_float(anterior[9])) # var aluminio_kg
+        hist.update(values=[nova_linha], range_name=f"A{idx + 1}")
+        print(f"✅ Historico: linha '{label}' atualizada.")
+    else:
+        # Adiciona nova linha
+        if len(todos) > 1:
+            anterior = todos[-1]
+            nova_linha[2] = calc_variacao(nova_linha[1], para_float(anterior[1]))
+            nova_linha[4] = calc_variacao(nova_linha[3], para_float(anterior[3]))
+            nova_linha[6] = calc_variacao(nova_linha[5], para_float(anterior[5]))
+            nova_linha[8] = calc_variacao(nova_linha[7], para_float(anterior[7]))
+            nova_linha[10] = calc_variacao(nova_linha[9], para_float(anterior[9]))
+        hist.append_row(nova_linha)
+        print(f"✅ Historico: linha '{label}' adicionada.")
+
+
 def gravar_no_sheets(client, dados):
     planilha = client.open_by_key(GOOGLE_SHEET_ID)
     data_obj = dados["data_obj"]
@@ -493,6 +553,9 @@ def gravar_no_sheets(client, dados):
 
     # Atualiza consolidado
     atualizar_consolidado(planilha)
+
+    # Atualiza historico
+    atualizar_historico(planilha, ano, mes)
 
 
 def main():
