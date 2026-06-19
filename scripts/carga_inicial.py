@@ -96,6 +96,7 @@ def conectar_google_sheets():
 def limpar_numero(texto, inteiro=False):
     if not texto or texto.strip().lower() in ("feriado", "-", ""):
         return None
+    print(f"DEBUG limpar_numero: '{texto}'")
     try:
         s = texto.strip().replace(",", ".")
         valor = float(s)
