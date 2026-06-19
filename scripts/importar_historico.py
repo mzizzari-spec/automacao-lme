@@ -110,6 +110,22 @@ def conectar_google_sheets():
     return gspread.authorize(creds)
 
 
+def criar_aba_historico(planilha):
+    """Cria ou atualiza aba Historico com todos os dados mensais."""
+    try:
+        aba = planilha.worksheet("Historico")
+        aba.clear()
+    except gspread.WorksheetNotFound:
+        aba = planilha.add_worksheet(title="Historico", rows=500, cols=12)
+
+    linhas = [CABECALHO_RESUMO]
+    for h in HISTORICO:
+        linhas.append(h)
+
+    aba.update(values=linhas, range_name="A1")
+    print(f"✅ Aba Historico criada/atualizada com {len(HISTORICO)} meses.")
+
+
 def main():
     print("=" * 55)
     print("IMPORTAÇÃO HISTÓRICO MENSAL")
@@ -137,11 +153,14 @@ def main():
     for h in HISTORICO:
         linhas_resumo.append(h)
 
-    # Grava abaixo dos dados
+    # Grava abaixo dos dados na aba do mês
     linha_inicio = num_linhas + 2
-    aba.update(f"A{linha_inicio}", linhas_resumo)
-
+    aba.update(values=linhas_resumo, range_name=f"A{linha_inicio}")
     print(f"✅ Histórico gravado: {len(HISTORICO)} meses na aba '{nome}'")
+
+    # Cria aba Historico separada para o dashboard
+    criar_aba_historico(planilha)
+
     print("=" * 55)
 
 
