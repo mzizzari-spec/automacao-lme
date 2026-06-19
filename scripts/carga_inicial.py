@@ -178,8 +178,8 @@ def buscar_dados_mes(ano, mes):
         except ValueError:
             continue
 
-        cobre = limpar_numero(colunas[1].get_text(strip=True))
-        aluminio = limpar_numero(colunas[3].get_text(strip=True))
+        cobre = limpar_numero(colunas[1].get_text(strip=True), inteiro=True)
+        aluminio = limpar_numero(colunas[3].get_text(strip=True), inteiro=True)
         dolar = limpar_numero(colunas[7].get_text(strip=True))
 
         if cobre or aluminio or dolar:
