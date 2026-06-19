@@ -25,11 +25,23 @@ MESES_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
 
 CABECALHO = [
     "Data", "Dia da Semana", "Tipo",
-    "Cobre (US$/t)", "Alumínio (US$/t)", "Dólar (R$/US$)",
-    "Cobre (R$/kg)", "Alumínio (R$/kg)",
+    "Cobre (US$/t)", "Var. Cobre",
+    "Alumínio (US$/t)", "Var. Alumínio",
+    "Dólar (R$/US$)", "Var. Dólar",
+    "Cobre (R$/kg)", "Var. Cobre/kg",
+    "Alumínio (R$/kg)", "Var. Alumínio/kg",
 ]
 
 CABECALHO_CONSOLIDADO = CABECALHO + ["Mês"]
+
+CABECALHO_RESUMO = [
+    "Mês", 
+    "Dólar", "Var. Dólar",
+    "Cobre (US$/t)", "Var. Cobre",
+    "Alumínio (US$/t)", "Var. Alumínio",
+    "Cobre (R$/kg)", "Var. Cobre/kg",
+    "Alumínio (R$/kg)", "Var. Alumínio/kg",
+]
 
 FERIADOS_FIXOS = {
     (1, 1), (21, 4), (1, 5), (7, 9),
@@ -97,10 +109,8 @@ def limpar_numero(texto, americano=False):
     try:
         s = texto.strip()
         if americano:
-            # Formato americano: 13,690.00 → remove vírgula de milhar
             s = s.replace(",", "")
         else:
-            # Formato brasileiro: 5,0923 → troca vírgula por ponto
             s = s.replace(".", "").replace(",", ".")
         return float(s)
     except ValueError:
@@ -110,14 +120,24 @@ def para_float(valor):
     if not valor:
         return None
     try:
-        return float(str(valor).replace(",", "."))
-    except ValueError:
+        s = str(valor).strip()
+        if "," in s and "." in s:
+            s = s.replace(".", "").replace(",", ".")
+        elif "," in s:
+            s = s.replace(",", ".")
+        return float(s)
+    except:
         return None
 
 def calc_kg(usd_t, dolar):
     if usd_t and dolar:
         return round((usd_t * dolar) / 1000, 4)
     return None
+
+def calc_variacao(atual, anterior):
+    if atual is None or anterior is None or anterior == 0:
+        return None
+    return round((atual - anterior) / anterior, 6)
 
 def obter_dados_ontem():
     hoje = datetime.now()
@@ -172,70 +192,240 @@ def obter_ou_criar_aba(planilha, ano, mes):
     try:
         aba = planilha.worksheet(nome)
     except gspread.WorksheetNotFound:
-        aba = planilha.add_worksheet(title=nome, rows=200, cols=10)
-        aba.append_row(CABECALHO)
+        aba = planilha.add_worksheet(title=nome, rows=200, cols=15)
         print(f"Aba '{nome}' criada.")
     return aba
 
-def recalcular_aba(aba, ano, mes):
-    """Recalcula projeções e médias da aba do mês."""
+def obter_ultimo_valor_mes_anterior(planilha, ano, mes):
+    """Busca o último valor real do mês anterior para calcular variação do primeiro dia."""
+    mes_ant = mes - 1
+    ano_ant = ano
+    if mes_ant == 0:
+        mes_ant = 12
+        ano_ant -= 1
+
+    nome = nome_aba(ano_ant, mes_ant)
+    try:
+        aba = planilha.worksheet(nome)
+        dados = aba.get_all_values()
+        # Busca última linha Real
+        for linha in reversed(dados):
+            if len(linha) > 2 and linha[2] == "Real":
+                return {
+                    "cobre": para_float(linha[3]),
+                    "aluminio": para_float(linha[5]),
+                    "dolar": para_float(linha[7]),
+                    "cobre_kg": para_float(linha[9]),
+                    "aluminio_kg": para_float(linha[11]),
+                }
+    except:
+        pass
+    return None
+
+def recalcular_aba(planilha, aba, ano, mes):
+    """Recalcula toda a aba com variações, médias semanais e resumo mensal."""
     todos_registros = aba.get_all_values()
     if not todos_registros:
         return []
 
+    # Pega só linhas reais (sem cabeçalho, médias etc)
     linhas_reais = [r for r in todos_registros[1:] if r and len(r) > 2 and r[2] == "Real"]
     if not linhas_reais:
         return []
 
+    # Último valor real para projeções
     ultimo = linhas_reais[-1]
     ultimo_cobre = para_float(ultimo[3])
-    ultimo_aluminio = para_float(ultimo[4])
-    ultimo_dolar = para_float(ultimo[5])
+    ultimo_aluminio = para_float(ultimo[5])
+    ultimo_dolar = para_float(ultimo[7])
 
-    datas_reais = set(r[0] for r in linhas_reais)
+    datas_reais = {r[0]: r for r in linhas_reais}
     dias_uteis = dias_uteis_do_mes(ano, mes)
     dias_semana_nomes = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
     hoje = datetime.now().date()
 
-    todas_linhas = []
+    # Busca último valor do mês anterior para variação do primeiro dia
+    ultimo_mes_ant = obter_ultimo_valor_mes_anterior(planilha, ano, mes)
+
+    # Monta lista de valores por data para calcular variações
+    valores_por_data = {}
     for d in dias_uteis:
         data_str = d.strftime("%d/%m/%Y")
         if data_str in datas_reais:
-            linha_real = next(r for r in linhas_reais if r[0] == data_str)
-            todas_linhas.append(linha_real[:8])
+            r = datas_reais[data_str]
+            valores_por_data[data_str] = {
+                "cobre": para_float(r[3]),
+                "aluminio": para_float(r[5]),
+                "dolar": para_float(r[7]),
+                "cobre_kg": para_float(r[9]) if len(r) > 9 else None,
+                "aluminio_kg": para_float(r[11]) if len(r) > 11 else None,
+                "tipo": "Real",
+                "dia_semana": r[1],
+            }
         elif d > hoje:
-            todas_linhas.append([
-                data_str,
-                dias_semana_nomes[d.weekday()],
-                "Projetado",
-                ultimo_cobre, ultimo_aluminio, ultimo_dolar,
-                calc_kg(ultimo_cobre, ultimo_dolar),
-                calc_kg(ultimo_aluminio, ultimo_dolar),
-            ])
+            cobre_kg = calc_kg(ultimo_cobre, ultimo_dolar)
+            aluminio_kg = calc_kg(ultimo_aluminio, ultimo_dolar)
+            valores_por_data[data_str] = {
+                "cobre": ultimo_cobre,
+                "aluminio": ultimo_aluminio,
+                "dolar": ultimo_dolar,
+                "cobre_kg": cobre_kg,
+                "aluminio_kg": aluminio_kg,
+                "tipo": "Projetado",
+                "dia_semana": dias_semana_nomes[d.weekday()],
+            }
 
-    def media_col(linhas, col):
-        vals = []
-        for l in linhas:
-            v = l[col] if col < len(l) else None
-            if v not in (None, ""):
-                try:
-                    vals.append(float(str(v).replace(",", ".")))
-                except ValueError:
-                    pass
+    # Monta linhas com variações e médias semanais
+    todas_linhas = [CABECALHO]
+    semana_atual = []
+    num_semana_anterior = None
+    valor_anterior = ultimo_mes_ant
+
+    for d in dias_uteis:
+        data_str = d.strftime("%d/%m/%Y")
+        if data_str not in valores_por_data:
+            continue
+
+        v = valores_por_data[data_str]
+
+        # Calcula variações
+        var_cobre = calc_variacao(v["cobre"], valor_anterior["cobre"] if valor_anterior else None)
+        var_al = calc_variacao(v["aluminio"], valor_anterior["aluminio"] if valor_anterior else None)
+        var_dol = calc_variacao(v["dolar"], valor_anterior["dolar"] if valor_anterior else None)
+
+        cobre_kg = v["cobre_kg"] or calc_kg(v["cobre"], v["dolar"])
+        aluminio_kg = v["aluminio_kg"] or calc_kg(v["aluminio"], v["dolar"])
+        prev_cobre_kg = calc_kg(valor_anterior["cobre"], valor_anterior["dolar"]) if valor_anterior else None
+        prev_al_kg = calc_kg(valor_anterior["aluminio"], valor_anterior["dolar"]) if valor_anterior else None
+
+        var_cobre_kg = calc_variacao(cobre_kg, prev_cobre_kg)
+        var_al_kg = calc_variacao(aluminio_kg, prev_al_kg)
+
+        linha = [
+            data_str, v["dia_semana"], v["tipo"],
+            v["cobre"], var_cobre,
+            v["aluminio"], var_al,
+            v["dolar"], var_dol,
+            cobre_kg, var_cobre_kg,
+            aluminio_kg, var_al_kg,
+        ]
+        todas_linhas.append(linha)
+        semana_atual.append(linha)
+
+        # Verifica se acabou a semana (sexta ou último dia útil do mês)
+        num_semana = d.isocalendar()[1]
+        proximo_dia_util = next((dd for dd in dias_uteis if dd > d), None)
+        fim_semana = (d.weekday() == 4 or proximo_dia_util is None or
+                     proximo_dia_util.isocalendar()[1] != num_semana)
+
+        if fim_semana and semana_atual:
+            media_linha = calcular_media_semana(semana_atual)
+            todas_linhas.append(media_linha)
+            semana_atual = []
+
+        valor_anterior = {
+            "cobre": v["cobre"],
+            "aluminio": v["aluminio"],
+            "dolar": v["dolar"],
+        }
+
+    # Médias do mês
+    reais = [l for l in todas_linhas[1:] if isinstance(l[2], str) and l[2] == "Real"]
+    todos = [l for l in todas_linhas[1:] if isinstance(l[2], str) and l[2] in ("Real", "Projetado")]
+
+    todas_linhas.append([])
+    todas_linhas.append(calcular_media_mes(reais, "Média Real"))
+    todas_linhas.append(calcular_media_mes(todos, "Média Projetada"))
+
+    # Atualiza aba
+    aba.clear()
+    aba.update("A1", todas_linhas)
+    print(f"✅ Aba atualizada: {len(reais)} reais + {len(todos)-len(reais)} projetados.")
+    return [l for l in todas_linhas[1:] if isinstance(l[2], str) and l[2] in ("Real", "Projetado")]
+
+
+def calcular_media_semana(linhas):
+    """Calcula média de uma semana."""
+    def med(col):
+        vals = [para_float(l[col]) for l in linhas if len(l) > col and para_float(l[col]) is not None]
         return round(sum(vals) / len(vals), 4) if vals else None
 
-    reais = [l for l in todas_linhas if l[2] == "Real"]
-    todos = todas_linhas
+    return ["Média Semana", "", "", med(3), med(4), med(5), med(6), med(7), med(8), med(9), med(10), med(11), med(12)]
 
-    media_real = ["Média Real", "", "", media_col(reais, 3), media_col(reais, 4), media_col(reais, 5), media_col(reais, 6), media_col(reais, 7)]
-    media_proj = ["Média Projetada", "", "", media_col(todos, 3), media_col(todos, 4), media_col(todos, 5), media_col(todos, 6), media_col(todos, 7)]
 
-    novas_linhas = [CABECALHO] + todas_linhas + [[], media_real, media_proj]
-    aba.clear()
-    aba.update("A1", novas_linhas)
+def calcular_media_mes(linhas, label):
+    """Calcula média do mês."""
+    def med(col):
+        vals = [para_float(l[col]) for l in linhas if len(l) > col and para_float(l[col]) is not None]
+        return round(sum(vals) / len(vals), 4) if vals else None
 
-    print(f"✅ Aba atualizada: {len(reais)} reais + {len(todos)-len(reais)} projetados.")
-    return todas_linhas
+    return [label, "", "", med(3), med(4), med(5), med(6), med(7), med(8), med(9), med(10), med(11), med(12)]
+
+
+def atualizar_resumo_mensal(planilha, aba, ano, mes):
+    """Atualiza o resumo mensal abaixo dos dados na aba."""
+    # Busca todas as abas de meses
+    todos_dados = aba.get_all_values()
+    num_linhas = len(todos_dados)
+
+    # Coleta médias reais de cada aba de mês disponível
+    resumo = []
+    for ws in sorted(planilha.worksheets(), key=lambda x: x.title):
+        if "/" not in ws.title or ws.title == "Consolidado":
+            continue
+        try:
+            partes = ws.title.split("/")
+            mes_nome = partes[0]
+            ano_ws = int(partes[1])
+            mes_ws = MESES_PT.index(mes_nome) + 1
+        except:
+            continue
+
+        try:
+            dados_ws = ws.get_all_values()
+            # Busca linha Média Real
+            for linha in dados_ws:
+                if linha and linha[0] == "Média Real":
+                    resumo.append({
+                        "label": ws.title,
+                        "dolar": para_float(linha[7]) if len(linha) > 7 else None,
+                        "cobre": para_float(linha[3]) if len(linha) > 3 else None,
+                        "aluminio": para_float(linha[5]) if len(linha) > 5 else None,
+                        "cobre_kg": para_float(linha[9]) if len(linha) > 9 else None,
+                        "aluminio_kg": para_float(linha[11]) if len(linha) > 11 else None,
+                    })
+                    break
+        except:
+            continue
+
+    if not resumo:
+        return
+
+    # Monta linhas do resumo com variações
+    linhas_resumo = [[], CABECALHO_RESUMO]
+    anterior = None
+    for r in resumo:
+        var_dol = calc_variacao(r["dolar"], anterior["dolar"] if anterior else None)
+        var_cobre = calc_variacao(r["cobre"], anterior["cobre"] if anterior else None)
+        var_al = calc_variacao(r["aluminio"], anterior["aluminio"] if anterior else None)
+        var_cobre_kg = calc_variacao(r["cobre_kg"], anterior["cobre_kg"] if anterior else None)
+        var_al_kg = calc_variacao(r["aluminio_kg"], anterior["aluminio_kg"] if anterior else None)
+
+        linhas_resumo.append([
+            r["label"],
+            r["dolar"], var_dol,
+            r["cobre"], var_cobre,
+            r["aluminio"], var_al,
+            r["cobre_kg"], var_cobre_kg,
+            r["aluminio_kg"], var_al_kg,
+        ])
+        anterior = r
+
+    # Grava abaixo dos dados existentes
+    linha_inicio = num_linhas + 2
+    aba.update(f"A{linha_inicio}", linhas_resumo)
+    print(f"✅ Resumo mensal atualizado com {len(resumo)} meses.")
+
 
 def atualizar_consolidado(planilha):
     """Atualiza aba Consolidado com dados de todas as abas de meses."""
@@ -243,15 +433,12 @@ def atualizar_consolidado(planilha):
         consolidado = planilha.worksheet("Consolidado")
         consolidado.clear()
     except gspread.WorksheetNotFound:
-        consolidado = planilha.add_worksheet(title="Consolidado", rows=2000, cols=10)
+        consolidado = planilha.add_worksheet(title="Consolidado", rows=2000, cols=15)
 
     linhas_consolidado = [CABECALHO_CONSOLIDADO]
 
     for ws in planilha.worksheets():
-        if ws.title in ("Consolidado",):
-            continue
-        # Só abas no formato Mês/Ano (ex: Jun/2026)
-        if "/" not in ws.title:
+        if ws.title == "Consolidado" or "/" not in ws.title:
             continue
         try:
             dados = ws.get_all_values()
@@ -259,15 +446,18 @@ def atualizar_consolidado(planilha):
             for linha in dados[1:]:
                 if not linha or len(linha) < 3:
                     continue
-                # Ignora linhas de média e vazias
                 if linha[2] not in ("Real", "Projetado"):
                     continue
-                linhas_consolidado.append(linha[:8] + [nome_mes])
+                # Garante 13 colunas
+                while len(linha) < 13:
+                    linha.append("")
+                linhas_consolidado.append(linha[:13] + [nome_mes])
         except Exception as e:
             print(f"  ⚠️  Erro ao ler aba {ws.title}: {e}")
 
     consolidado.update("A1", linhas_consolidado)
     print(f"✅ Consolidado atualizado: {len(linhas_consolidado)-1} linhas.")
+
 
 def gravar_no_sheets(client, dados):
     planilha = client.open_by_key(GOOGLE_SHEET_ID)
@@ -276,21 +466,34 @@ def gravar_no_sheets(client, dados):
 
     aba = obter_ou_criar_aba(planilha, ano, mes)
 
+    # Verifica se data já existe
     todas = aba.col_values(1)
     if dados["data"] not in todas:
+        cobre_kg = calc_kg(dados["cobre_usd_t"], dados["dolar_brl"])
+        aluminio_kg = calc_kg(dados["aluminio_usd_t"], dados["dolar_brl"])
+
         nova_linha = [
             dados["data"], dados["dia_semana"], "Real",
-            dados["cobre_usd_t"], dados["aluminio_usd_t"], dados["dolar_brl"],
-            calc_kg(dados["cobre_usd_t"], dados["dolar_brl"]),
-            calc_kg(dados["aluminio_usd_t"], dados["dolar_brl"]),
+            dados["cobre_usd_t"], None,
+            dados["aluminio_usd_t"], None,
+            dados["dolar_brl"], None,
+            cobre_kg, None,
+            aluminio_kg, None,
         ]
         aba.append_row(nova_linha)
-        print(f"✅ Linha real gravada: {nova_linha}")
+        print(f"✅ Linha real gravada.")
     else:
         print(f"⚠️  Data {dados['data']} já existe.")
 
-    recalcular_aba(aba, ano, mes)
+    # Recalcula tudo
+    linhas_dias = recalcular_aba(planilha, aba, ano, mes)
+
+    # Atualiza resumo mensal
+    atualizar_resumo_mensal(planilha, aba, ano, mes)
+
+    # Atualiza consolidado
     atualizar_consolidado(planilha)
+
 
 def main():
     print("=" * 50)
@@ -309,6 +512,7 @@ def main():
     print("=" * 50)
     print("✅ Coleta concluída com sucesso!")
     print("=" * 50)
+
 
 if __name__ == "__main__":
     main()
