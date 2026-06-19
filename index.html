@@ -269,7 +269,7 @@ function renderChart(dados) {
 
 function renderTable(dados) {
   var reais = dados.filter(function(r) { return r['Tipo'] === 'Real'; });
-  var c1='Cobre (US$/t)', c2='Alum\u00ednio (US$/t)', c3='D\u00f3lar (R$/US$)', c4='Cobre (R$/kg)', c5='Alum\u00ednio (R$/kg)';
+  var c1='Cobre (US$/t)', c2='Alum\u00ednio (US$/t)', c3='D\u00f3lar', c4='Cobre (R$/kg)', c5='Alum\u00ednio (R$/kg)';
   var vc1='Var. Cobre', vc2='Var. Alum\u00ednio', vc3='Var. D\u00f3lar', vc4='Var. Cobre/kg', vc5='Var. Alum\u00ednio/kg';
   var semanaAtual = [], linhasTabela = [], semanaNum = null;
 
@@ -414,7 +414,7 @@ function renderChartHistorico(dados) {
   var labels = dados.map(function(r) { return r['M\u00eas'] || r['Mes'] || ''; });
   var cobre = dados.map(function(r) { return toNum(r['Cobre (US$/t)']); });
   var al = dados.map(function(r) { return toNum(r['Alum\u00ednio (US$/t)']); });
-  var dol = dados.map(function(r) { return toNum(r['D\u00f3lar (R$/US$)']); });
+  var dol = dados.map(function(r) { return toNum(r['D\u00f3lar']); });
   if (chartHistObj) chartHistObj.destroy();
   var ctx = document.getElementById('chart-hist').getContext('2d');
   chartHistObj = new Chart(ctx, {
