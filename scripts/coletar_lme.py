@@ -199,11 +199,19 @@ def calcular_linhas_projecao(aba, dados_novos, ano, mes):
     if not linhas_reais:
         return
 
+    def para_float(valor):
+        if not valor:
+            return None
+        try:
+            return float(str(valor).replace(",", "."))
+        except ValueError:
+            return None
+
     # Último valor real
     ultimo = linhas_reais[-1]
-    ultimo_cobre = float(ultimo[3]) if ultimo[3] else None
-    ultimo_aluminio = float(ultimo[4]) if ultimo[4] else None
-    ultimo_dolar = float(ultimo[5]) if ultimo[5] else None
+    ultimo_cobre = para_float(ultimo[3])
+    ultimo_aluminio = para_float(ultimo[4])
+    ultimo_dolar = para_float(ultimo[5])
 
     def calc_kg(usd_t, dolar):
         if usd_t and dolar:
@@ -245,7 +253,14 @@ def calcular_linhas_projecao(aba, dados_novos, ano, mes):
     todos = reais + projetados
 
     def media_col(linhas, col):
-        vals = [float(l[col]) for l in linhas if l[col] not in (None, "")]
+        vals = []
+        for l in linhas:
+            v = l[col] if col < len(l) else None
+            if v not in (None, ""):
+                try:
+                    vals.append(float(str(v).replace(",", ".")))
+                except ValueError:
+                    pass
         return round(sum(vals) / len(vals), 4) if vals else None
 
     media_real = [
