@@ -97,7 +97,9 @@ def limpar_numero(texto, inteiro=False):
     if not texto or texto.strip().lower() in ("feriado", "-", ""):
         return None
     try:
-        return float(texto.strip().replace(".", "").replace(",", "."))
+        # Site usa formato americano: 13,690.00
+        s = texto.strip().replace(",", "")  # remove vírgula de milhar
+        return float(s)
     except ValueError:
         return None
 
