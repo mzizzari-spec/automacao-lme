@@ -433,9 +433,9 @@ function popularFiltroHistorico() {
     if (partes.length === 2) anos.add(partes[1]);
   });
   var anosArr = Array.from(anos).sort();
-  var btns = '<button onclick="renderHistorico('Total')" class="hist-btn active" id="btn-Total">Total</button>';
+ var btns = '<button onclick="renderHistorico(\"Total\")" class="hist-btn active" id="btn-Total">Total</button>';
   anosArr.forEach(function(ano) {
-    btns += '<button onclick="renderHistorico('' + ano + '')" class="hist-btn" id="btn-' + ano + '">' + ano + '</button>';
+    btns += '<button onclick="renderHistorico(\"' + ano + '\")" class="hist-btn" id="btn-' + ano + '">' + ano + '</button>';
   });
   document.getElementById('hist-filtro').innerHTML = btns;
 }
