@@ -1,9 +1,7 @@
-"""
 Script: coletar_lme.py
 Função: Coleta dados de Cobre, Alumínio e Dólar do site shockmetais.com.br/lme
         e grava na planilha do Google Sheets automaticamente.
 Roda: Todo dia às 7h via GitHub Actions
-"""
 
 import os
 import re
