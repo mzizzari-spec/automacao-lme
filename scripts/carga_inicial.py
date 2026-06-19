@@ -97,8 +97,13 @@ def limpar_numero(texto, inteiro=False):
     if not texto or texto.strip().lower() in ("feriado", "-", ""):
         return None
     try:
-        # Remove pontos de milhar e troca virgula decimal por ponto
-        s = texto.strip().replace(".", "").replace(",", ".")
+        s = texto.strip()
+        # Remove pontos de milhar, troca virgula por ponto decimal
+        if "," in s:
+            s = s.replace(".", "").replace(",", ".")
+        else:
+            # Sem virgula: ponto é milhar, remove
+            s = s.replace(".", "")
         valor = float(s)
         return int(round(valor)) if inteiro else valor
     except ValueError:
