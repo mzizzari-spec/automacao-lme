@@ -13,10 +13,11 @@
     --text: #1a1d2e; --text-dim: #6b7280;
     --real-badge: #dcfce7; --real-text: #15803d;
     --proj-badge: #dbeafe; --proj-text: #1d4ed8;
+    --up: #15803d; --down: #dc2626;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; padding: 32px 24px; }
-  .container { max-width: 1200px; margin: 0 auto; }
+  .container { max-width: 1300px; margin: 0 auto; }
   header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
   .header-left h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
   .header-left h1 span { color: var(--copper); }
@@ -44,17 +45,23 @@
   .table-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
   .table-title { font-size: 13px; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; }
-  thead th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 500; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  thead th { padding: 9px 10px; text-align: left; font-size: 10px; font-weight: 500; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  thead th.center { text-align: center; }
   tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: var(--surface2); }
-  tbody td { padding: 10px 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-  tbody td:first-child { font-family: 'Inter', sans-serif; font-size: 13px; color: var(--text-dim); }
-  tbody td:nth-child(2) { font-family: 'Inter', sans-serif; font-size: 12px; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; font-family: 'Inter', sans-serif; text-transform: uppercase; }
+  tbody td { padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  tbody td:first-child { font-family: 'Inter', sans-serif; font-size: 12px; color: var(--text-dim); }
+  tbody td:nth-child(2) { font-family: 'Inter', sans-serif; font-size: 11px; }
+  tbody td.center { text-align: center; }
+  .var-up { color: var(--up); font-size: 10px; }
+  .var-down { color: var(--down); font-size: 10px; }
+  .var-neutral { color: var(--text-dim); font-size: 10px; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; font-family: 'Inter', sans-serif; text-transform: uppercase; }
   .badge-real { background: var(--real-badge); color: var(--real-text); }
   .badge-proj { background: var(--proj-badge); color: var(--proj-text); }
-  .media-row td { font-weight: 600; font-family: 'Inter', sans-serif !important; font-size: 12px !important; background: var(--surface2); border-top: 2px solid var(--border); }
+  .semana-row td { background: #f8f9fa !important; color: #9aa0b4 !important; font-size: 11px !important; font-style: italic; border-bottom: 2px solid var(--border) !important; }
+  .media-row td { font-weight: 600; font-family: 'Inter', sans-serif !important; font-size: 11px !important; background: var(--surface2); border-top: 2px solid var(--border); }
   .media-real-row td { color: var(--real-text) !important; }
   .media-proj-row td { color: var(--proj-text) !important; }
   .state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: 14px; }
@@ -123,6 +130,15 @@ function fmt(v, dec) {
   return n.toLocaleString('pt-BR', {minimumFractionDigits: dec, maximumFractionDigits: dec});
 }
 
+function fmtVar(v) {
+  var n = toNum(v);
+  if (n === null) return '<span class="var-neutral">-</span>';
+  var pct = (n * 100).toFixed(2);
+  var sinal = n > 0 ? '+' : '';
+  var cls = n > 0 ? 'var-up' : n < 0 ? 'var-down' : 'var-neutral';
+  return '<span class="' + cls + '">' + sinal + pct + '%</span>';
+}
+
 function calcMedia(arr, campo, tipo) {
   var vals = arr
     .filter(function(r) { return tipo ? r['Tipo'] === tipo : true; })
@@ -151,7 +167,7 @@ function carregarDados() {
       document.getElementById('updated-at').textContent = 'Atualizado em ' + agora.toLocaleDateString('pt-BR') + ' as ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
     })
     .catch(function(e) {
-      document.getElementById('cards').innerHTML = '<div class="state" style="grid-column:1/-1">Erro ao carregar dados. Verifique se a planilha esta publica.</div>';
+      document.getElementById('cards').innerHTML = '<div class="state" style="grid-column:1/-1">Erro ao carregar dados.</div>';
       console.error(e);
     });
 }
@@ -160,7 +176,7 @@ function popularMeses() {
   var vistos = {};
   var mesesFinal = [];
   todosOsDados.forEach(function(r) {
-    var m = r['Mes'] || r['M\u00eas'] || null;
+    var m = r['M\u00eas'] || r['Mes'] || null;
     if (m && !vistos[m]) { vistos[m] = true; mesesFinal.push(m); }
   });
   mesesFinal.reverse();
@@ -171,7 +187,7 @@ function popularMeses() {
 function filtrarMes() {
   var mes = document.getElementById('month-select').value;
   var dados = todosOsDados.filter(function(r) {
-    var m = r['Mes'] || r['M\u00eas'] || null;
+    var m = r['M\u00eas'] || r['Mes'] || null;
     return m === mes;
   });
   renderCards(dados);
@@ -180,18 +196,20 @@ function filtrarMes() {
 }
 
 function renderCards(dados) {
-  var c1 = 'Cobre (US$/t)';
-  var c2 = 'Alum\u00ednio (US$/t)';
-  var c3 = 'D\u00f3lar (R$/US$)';
+  var c1 = 'Cobre (US$/t)', c2 = 'Alum\u00ednio (US$/t)', c3 = 'D\u00f3lar (R$/US$)';
+  var mR_c = calcMedia(dados,c1,'Real'), mP_c = calcMedia(dados,c1,null);
+  var mR_a = calcMedia(dados,c2,'Real'), mP_a = calcMedia(dados,c2,null);
+  var mR_d = calcMedia(dados,c3,'Real'), mP_d = calcMedia(dados,c3,null);
+
   document.getElementById('cards').innerHTML =
     '<div class="card-section-title">Media Real</div>' +
-    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(calcMedia(dados,c1,'Real'),2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(calcMedia(dados,c2,'Real'),2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(calcMedia(dados,c3,'Real'),2) + '</div><div class="card-sub">R$/US$</div></div>' +
+    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mR_c,0) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mR_a,0) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mR_d,4) + '</div><div class="card-sub">R$/US$</div></div>' +
     '<div class="card-section-title">Media Projetada</div>' +
-    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(calcMedia(dados,c1,null),2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(calcMedia(dados,c2,null),2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(calcMedia(dados,c3,null),2) + '</div><div class="card-sub">R$/US$</div></div>';
+    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mP_c,0) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mP_a,0) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mP_d,4) + '</div><div class="card-sub">R$/US$</div></div>';
 }
 
 function renderChart(dados) {
@@ -230,24 +248,119 @@ function renderChart(dados) {
 function renderTable(dados) {
   var reais = dados.filter(function(r) { return r['Tipo'] === 'Real'; });
   var c1='Cobre (US$/t)', c2='Alum\u00ednio (US$/t)', c3='D\u00f3lar (R$/US$)', c4='Cobre (R$/kg)', c5='Alum\u00ednio (R$/kg)';
-  var linhas = dados.map(function(r) {
-    return '<tr>' +
-      '<td>' + (r['Data'] || '') + '</td>' +
-      '<td>' + (r['Dia da Semana'] || '') + '</td>' +
-      '<td><span class="badge ' + (r['Tipo']==='Real'?'badge-real':'badge-proj') + '">' + r['Tipo'] + '</span></td>' +
-      '<td>' + fmt(r[c1],2) + '</td>' +
-      '<td>' + fmt(r[c2],2) + '</td>' +
-      '<td>' + fmt(r[c3],2) + '</td>' +
-      '<td>' + fmt(r[c4],4) + '</td>' +
-      '<td>' + fmt(r[c5],4) + '</td>' +
-      '</tr>';
+  var vc1='Var. Cobre', vc2='Var. Alum\u00ednio', vc3='Var. D\u00f3lar', vc4='Var. Cobre/kg', vc5='Var. Alum\u00ednio/kg';
+
+  // Calcula médias semanais
+  var semanaAtual = [];
+  var linhasTabela = [];
+  var semanaNum = null;
+
+  dados.forEach(function(r, idx) {
+    var data = r['Data'] ? String(r['Data']) : '';
+    var partes = data.split('/');
+    var d = partes.length === 3 ? new Date(partes[2], partes[1]-1, partes[0]) : null;
+    var semana = d ? getWeekNumber(d) : null;
+
+    if (semanaNum !== null && semana !== semanaNum && semanaAtual.length > 0) {
+      linhasTabela.push({tipo: 'semana', dados: semanaAtual.slice()});
+      semanaAtual = [];
+    }
+    semanaNum = semana;
+    linhasTabela.push({tipo: 'dia', r: r});
+    semanaAtual.push(r);
+
+    // Verifica se é o último da semana
+    var proximo = dados[idx+1];
+    var proximaSemana = proximo ? (function() {
+      var pp = String(proximo['Data'] || '').split('/');
+      var dd = pp.length === 3 ? new Date(pp[2], pp[1]-1, pp[0]) : null;
+      return dd ? getWeekNumber(dd) : null;
+    })() : null;
+
+    if (proximaSemana !== semana && semanaAtual.length > 0) {
+      linhasTabela.push({tipo: 'semana', dados: semanaAtual.slice()});
+      semanaAtual = [];
+    }
+  });
+
+  function getWeekNumber(d) {
+    var onejan = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+  }
+
+  function medSemana(arr, campo) {
+    var vals = arr.map(function(r) { return toNum(r[campo]); }).filter(function(v) { return v !== null; });
+    if (!vals.length) return null;
+    return vals.reduce(function(a,b){return a+b;},0)/vals.length;
+  }
+
+  // Remove duplicatas de semana
+  var linhasFinais = [];
+  var semanaAdicionadas = new Set();
+  linhasTabela.forEach(function(item) {
+    if (item.tipo === 'semana') {
+      var key = item.dados.map(function(r){return r['Data'];}).join(',');
+      if (!semanaAdicionadas.has(key)) {
+        semanaAdicionadas.add(key);
+        linhasFinais.push(item);
+      }
+    } else {
+      linhasFinais.push(item);
+    }
+  });
+
+  var linhas = linhasFinais.map(function(item) {
+    if (item.tipo === 'dia') {
+      var r = item.r;
+      return '<tr>' +
+        '<td>' + (r['Data'] || '') + '</td>' +
+        '<td>' + (r['Dia da Semana'] || '') + '</td>' +
+        '<td><span class="badge ' + (r['Tipo']==='Real'?'badge-real':'badge-proj') + '">' + r['Tipo'] + '</span></td>' +
+        '<td>' + fmt(r[c1],0) + '</td><td class="center">' + fmtVar(r[vc1]) + '</td>' +
+        '<td>' + fmt(r[c2],0) + '</td><td class="center">' + fmtVar(r[vc2]) + '</td>' +
+        '<td>' + fmt(r[c3],4) + '</td><td class="center">' + fmtVar(r[vc3]) + '</td>' +
+        '<td>' + fmt(r[c4],4) + '</td><td class="center">' + fmtVar(r[vc4]) + '</td>' +
+        '<td>' + fmt(r[c5],4) + '</td><td class="center">' + fmtVar(r[vc5]) + '</td>' +
+        '</tr>';
+    } else {
+      var arr = item.dados;
+      return '<tr class="semana-row">' +
+        '<td colspan="3" style="font-size:10px;">Media semana</td>' +
+        '<td>' + fmt(medSemana(arr,c1),0) + '</td><td></td>' +
+        '<td>' + fmt(medSemana(arr,c2),0) + '</td><td></td>' +
+        '<td>' + fmt(medSemana(arr,c3),4) + '</td><td></td>' +
+        '<td>' + fmt(medSemana(arr,c4),4) + '</td><td></td>' +
+        '<td>' + fmt(medSemana(arr,c5),4) + '</td><td></td>' +
+        '</tr>';
+    }
   }).join('');
+
+  var mR_c=calcMedia(dados,c1,'Real'), mP_c=calcMedia(dados,c1,null);
+  var mR_a=calcMedia(dados,c2,'Real'), mP_a=calcMedia(dados,c2,null);
+  var mR_d=calcMedia(dados,c3,'Real'), mP_d=calcMedia(dados,c3,null);
+  var mR_ck=calcMedia(dados,c4,'Real'), mP_ck=calcMedia(dados,c4,null);
+  var mR_ak=calcMedia(dados,c5,'Real'), mP_ak=calcMedia(dados,c5,null);
+
   document.getElementById('table-container').innerHTML =
-    '<table><thead><tr><th>Data</th><th>Dia</th><th>Tipo</th><th>Cobre US$/t</th><th>Aluminio US$/t</th><th>Dolar R$/US$</th><th>Cobre R$/kg</th><th>Aluminio R$/kg</th></tr></thead><tbody>' +
+    '<table><thead><tr>' +
+    '<th>Data</th><th>Dia</th><th>Tipo</th>' +
+    '<th>Cobre US$/t</th><th class="center">Var%</th>' +
+    '<th>Aluminio US$/t</th><th class="center">Var%</th>' +
+    '<th>Dolar R$/US$</th><th class="center">Var%</th>' +
+    '<th>Cobre R$/kg</th><th class="center">Var%</th>' +
+    '<th>Aluminio R$/kg</th><th class="center">Var%</th>' +
+    '</tr></thead><tbody>' +
     linhas +
-    '<tr class="media-row media-real-row"><td colspan="3">Media Real</td><td>' + fmt(calcMedia(dados,c1,'Real'),2) + '</td><td>' + fmt(calcMedia(dados,c2,'Real'),2) + '</td><td>' + fmt(calcMedia(dados,c3,'Real'),2) + '</td><td>' + fmt(calcMedia(dados,c4,'Real'),4) + '</td><td>' + fmt(calcMedia(dados,c5,'Real'),4) + '</td></tr>' +
-    '<tr class="media-row media-proj-row"><td colspan="3">Media Projetada</td><td>' + fmt(calcMedia(dados,c1,null),2) + '</td><td>' + fmt(calcMedia(dados,c2,null),2) + '</td><td>' + fmt(calcMedia(dados,c3,null),2) + '</td><td>' + fmt(calcMedia(dados,c4,null),4) + '</td><td>' + fmt(calcMedia(dados,c5,null),4) + '</td></tr>' +
+    '<tr class="media-row media-real-row"><td colspan="3">Media Real</td>' +
+    '<td>' + fmt(mR_c,0) + '</td><td></td><td>' + fmt(mR_a,0) + '</td><td></td>' +
+    '<td>' + fmt(mR_d,4) + '</td><td></td><td>' + fmt(mR_ck,4) + '</td><td></td>' +
+    '<td>' + fmt(mR_ak,4) + '</td><td></td></tr>' +
+    '<tr class="media-row media-proj-row"><td colspan="3">Media Projetada</td>' +
+    '<td>' + fmt(mP_c,0) + '</td><td></td><td>' + fmt(mP_a,0) + '</td><td></td>' +
+    '<td>' + fmt(mP_d,4) + '</td><td></td><td>' + fmt(mP_ck,4) + '</td><td></td>' +
+    '<td>' + fmt(mP_ak,4) + '</td><td></td></tr>' +
     '</tbody></table>';
+
   document.getElementById('total-dias').textContent = reais.length + ' dias reais - ' + (dados.length - reais.length) + ' projetados';
 }
 
