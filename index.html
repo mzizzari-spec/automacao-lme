@@ -445,12 +445,12 @@ function renderCards(dados) {
     <div class="card-section-title">Média Real</div>
     <div class="card copper">
       <div class="card-label">Cobre</div>
-      <div class="card-value">${fmt(mR_cobre, 0)}</div>
+      <div class="card-value">${fmt(mR_cobre, 4)}</div>
       <div class="card-sub">US$/t</div>
     </div>
     <div class="card aluminium">
       <div class="card-label">Alumínio</div>
-      <div class="card-value">${fmt(mR_al, 0)}</div>
+      <div class="card-value">${fmt(mR_al, 4)}</div>
       <div class="card-sub">US$/t</div>
     </div>
     <div class="card dollar">
@@ -461,12 +461,12 @@ function renderCards(dados) {
     <div class="card-section-title">Média Projetada</div>
     <div class="card copper">
       <div class="card-label">Cobre</div>
-      <div class="card-value">${fmt(mP_cobre, 0)}</div>
+      <div class="card-value">${fmt(mP_cobre, 4)}</div>
       <div class="card-sub">US$/t</div>
     </div>
     <div class="card aluminium">
       <div class="card-label">Alumínio</div>
-      <div class="card-value">${fmt(mP_al, 0)}</div>
+      <div class="card-value">${fmt(mP_al, 4)}</div>
       <div class="card-sub">US$/t</div>
     </div>
     <div class="card dollar">
@@ -594,8 +594,8 @@ function renderTable(dados) {
       <td>${r['Data'] || ''}</td>
       <td>${r['Dia da Semana'] || ''}</td>
       <td><span class="badge ${r['Tipo']==='Real'?'badge-real':'badge-proj'}">${r['Tipo']}</span></td>
-      <td>${fmt(parseFloat(r['Cobre (US$/t)']), 2)}</td>
-      <td>${fmt(parseFloat(r['Alumínio (US$/t)']), 2)}</td>
+      <td>${fmt(parseFloat(r['Cobre (US$/t)']), 4)}</td>
+      <td>${fmt(parseFloat(r['Alumínio (US$/t)']), 4)}</td>
       <td>${fmt(parseFloat(r['Dólar (R$/US$)']), 4)}</td>
       <td>${fmt(parseFloat(r['Cobre (R$/kg)']), 4)}</td>
       <td>${fmt(parseFloat(r['Alumínio (R$/kg)']), 4)}</td>
@@ -620,16 +620,16 @@ function renderTable(dados) {
         ${linhas}
         <tr class="media-row media-real-row">
           <td colspan="3">Média Real</td>
-          <td>${fmt(mR.cobre, 2)}</td>
-          <td>${fmt(mR.al, 2)}</td>
+          <td>${fmt(mR.cobre, 4)}</td>
+          <td>${fmt(mR.al, 4)}</td>
           <td>${fmt(mR.dol, 4)}</td>
           <td>${fmt(mR.cobreKg, 4)}</td>
           <td>${fmt(mR.alKg, 4)}</td>
         </tr>
         <tr class="media-row media-proj-row">
           <td colspan="3">Média Projetada</td>
-          <td>${fmt(mP.cobre, 2)}</td>
-          <td>${fmt(mP.al, 2)}</td>
+          <td>${fmt(mP.cobre, 4)}</td>
+          <td>${fmt(mP.al, 4)}</td>
           <td>${fmt(mP.dol, 4)}</td>
           <td>${fmt(mP.cobreKg, 4)}</td>
           <td>${fmt(mP.alKg, 4)}</td>
