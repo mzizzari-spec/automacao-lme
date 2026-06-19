@@ -91,12 +91,12 @@ def gerar_html_email(dados, nome_mes):
     reais = [l for l in linhas_dias if l[2] == "Real"]
     projetados = [l for l in linhas_dias if l[2] == "Projetado"]
 
-    def card(label, val, var, cor, unidade):
+    def card(label, val, var, cor, unidade, dec=2):
         return f"""
         <td style="padding:0 8px 0 0;" width="33%">
           <div style="background:#fff;border:1px solid #e2e4ea;border-radius:8px;padding:14px;">
             <div style="font-size:10px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">{label}</div>
-            <div style="font-size:16px;font-weight:600;color:{cor};font-family:monospace;">{fmt(val, 2)}</div>
+            <div style="font-size:16px;font-weight:600;color:{cor};font-family:monospace;">{fmt(val, dec)}</div>
             <div style="font-size:10px;color:#6b7280;margin-top:2px;">{unidade} &nbsp; {fmt_var(var)}</div>
           </div>
         </td>"""
@@ -109,14 +109,14 @@ def gerar_html_email(dados, nome_mes):
         <tr>
           {card("Cobre Real", media_real[3], media_real[4], "#c45e1a", "US$/t")}
           {card("Alumínio Real", media_real[5], media_real[6], "#2b6cb0", "US$/t")}
-          {card("Dólar Real", media_real[7], media_real[8], "#1a7a42", "R$/US$")}
+          {card("Dólar Real", media_real[7], media_real[8], "#1a7a42", "R$/US$", dec=4)}
         </tr>"""
     if media_proj and len(media_proj) > 12:
         cards_proj = f"""
         <tr>
           {card("Cobre Proj.", media_proj[3], media_proj[4], "#c45e1a", "US$/t")}
           {card("Alumínio Proj.", media_proj[5], media_proj[6], "#2b6cb0", "US$/t")}
-          {card("Dólar Proj.", media_proj[7], media_proj[8], "#1a7a42", "R$/US$")}
+          {card("Dólar Proj.", media_proj[7], media_proj[8], "#1a7a42", "R$/US$", dec=4)}
         </tr>"""
 
     # Linhas da tabela
@@ -154,8 +154,8 @@ def gerar_html_email(dados, nome_mes):
               {td(3, 0)}{td_var(4)}
               {td(5, 0)}{td_var(6)}
               {td(7, 4)}{td_var(8)}
-              {td(9, 4)}{td_var(10)}
-              {td(11, 4)}{td_var(12)}
+              {td(9, 2)}{td_var(10)}
+              {td(11, 2)}{td_var(12)}
             </tr>"""
 
         elif l[0] == "Média Semana":
@@ -169,8 +169,8 @@ def gerar_html_email(dados, nome_mes):
               {td_med(3, 0)}<td></td>
               {td_med(5, 0)}<td></td>
               {td_med(7, 4)}<td></td>
-              {td_med(9, 4)}<td></td>
-              {td_med(11, 4)}<td></td>
+              {td_med(9, 2)}<td></td>
+              {td_med(11, 2)}<td></td>
             </tr>"""
 
     # Linha média real e projetada na tabela
@@ -230,16 +230,16 @@ def gerar_html_email(dados, nome_mes):
           {td_media(media_real, 3, 0)}{td_media_var(media_real, 4)}
           {td_media(media_real, 5, 0)}{td_media_var(media_real, 6)}
           {td_media(media_real, 7, 4)}{td_media_var(media_real, 8)}
-          {td_media(media_real, 9, 4)}{td_media_var(media_real, 10)}
-          {td_media(media_real, 11, 4)}{td_media_var(media_real, 12)}
+          {td_media(media_real, 9, 2)}{td_media_var(media_real, 10)}
+          {td_media(media_real, 11, 2)}{td_media_var(media_real, 12)}
         </tr>
         <tr style="background:#f0f1f4;">
           <td colspan="3" style="padding:7px 10px;font-size:11px;font-weight:600;color:#1d4ed8;">Média Projetada</td>
           {td_media(media_proj, 3, 0)}{td_media_var(media_proj, 4)}
           {td_media(media_proj, 5, 0)}{td_media_var(media_proj, 6)}
           {td_media(media_proj, 7, 4)}{td_media_var(media_proj, 8)}
-          {td_media(media_proj, 9, 4)}{td_media_var(media_proj, 10)}
-          {td_media(media_proj, 11, 4)}{td_media_var(media_proj, 12)}
+          {td_media(media_proj, 9, 2)}{td_media_var(media_proj, 10)}
+          {td_media(media_proj, 11, 2)}{td_media_var(media_proj, 12)}
         </tr>
       </tbody>
     </table>
