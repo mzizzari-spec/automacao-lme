@@ -92,20 +92,14 @@ def conectar_google_sheets():
     ]
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(creds)
-
+        
 def limpar_numero(texto, inteiro=False):
     if not texto or texto.strip().lower() in ("feriado", "-", ""):
         return None
     try:
-        s = texto.strip()
-        # Remove pontos de milhar, troca virgula por ponto decimal
-        if "," in s:
-            s = s.replace(".", "").replace(",", ".")
-        else:
-            # Sem virgula: ponto é milhar, remove
-            s = s.replace(".", "")
+        s = texto.strip().replace(",", ".")
         valor = float(s)
-        return int(round(valor)) if inteiro else valor
+        return int(round(valor * 1000)) if inteiro else valor
     except ValueError:
         return None
 
