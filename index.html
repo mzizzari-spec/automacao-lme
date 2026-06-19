@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LME — Cotações de Metais</title>
+<title>LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -104,31 +104,30 @@ var URL_SHEETS = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/t
 var todosOsDados = [];
 var chartObj = null;
 
+function toNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  var s = String(v).trim();
+  if (s.indexOf(',') !== -1 && s.indexOf('.') !== -1) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (s.indexOf(',') !== -1) {
+    s = s.replace(',', '.');
+  }
+  var n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
 function fmt(v, dec) {
   if (dec === undefined) dec = 2;
-  if (v === null || v === undefined || v === '') return '-';
-  var s = String(v).trim();
-  var num;
-  if (s.indexOf(',') !== -1 && s.indexOf('.') !== -1) {
-    // formato 13.612,00 -> remove ponto e troca virgula por ponto
-    s = s.replace(/\./g, '').replace(',', '.');
-    num = parseFloat(s);
-  } else if (s.indexOf(',') !== -1) {
-    // formato 13,612 -> troca virgula por ponto
-    s = s.replace(',', '.');
-    num = parseFloat(s);
-  } else {
-    num = parseFloat(s);
-  }
-  if (isNaN(num)) return '-';
-  return num.toLocaleString('pt-BR', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+  var n = toNum(v);
+  if (n === null) return '-';
+  return n.toLocaleString('pt-BR', {minimumFractionDigits: dec, maximumFractionDigits: dec});
 }
 
 function calcMedia(arr, campo, tipo) {
   var vals = arr
     .filter(function(r) { return tipo ? r['Tipo'] === tipo : true; })
-    .map(function(r) { return parseFloat(r[campo]); })
-    .filter(function(v) { return !isNaN(v) && v > 0; });
+    .map(function(r) { return toNum(r[campo]); })
+    .filter(function(v) { return v !== null && v > 0; });
   if (!vals.length) return null;
   return vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
 }
@@ -159,17 +158,10 @@ function carregarDados() {
 
 function popularMeses() {
   var vistos = {};
-  var meses = [];
-  todosOsDados.forEach(function(r) {
-    if (r['Mes'] && !vistos[r['Mes']]) { vistos[r['Mes']] = true; meses.push(r['Mes']); }
-    if (r['\u00eas'] && !vistos[r['\u00eAs']]) { vistos[r['\u00eAs']] = true; meses.push(r['\u00eAs']); }
-  });
-  // tenta coluna Mes com acento
   var mesesFinal = [];
-  var vistos2 = {};
   todosOsDados.forEach(function(r) {
-    var m = r['M\u00eas'] || r['Mes'] || null;
-    if (m && !vistos2[m]) { vistos2[m] = true; mesesFinal.push(m); }
+    var m = r['Mes'] || r['M\u00eas'] || null;
+    if (m && !vistos[m]) { vistos[m] = true; mesesFinal.push(m); }
   });
   mesesFinal.reverse();
   var sel = document.getElementById('month-select');
@@ -179,7 +171,7 @@ function popularMeses() {
 function filtrarMes() {
   var mes = document.getElementById('month-select').value;
   var dados = todosOsDados.filter(function(r) {
-    var m = r['M\u00eas'] || r['Mes'] || null;
+    var m = r['Mes'] || r['M\u00eas'] || null;
     return m === mes;
   });
   renderCards(dados);
@@ -204,9 +196,9 @@ function renderCards(dados) {
 
 function renderChart(dados) {
   var labels = dados.map(function(r) { return r['Data'] ? String(r['Data']).substring(0,5) : ''; });
-  var cobre = dados.map(function(r) { return parseFloat(r['Cobre (US$/t)']); });
-  var al = dados.map(function(r) { return parseFloat(r['Alum\u00ednio (US$/t)']); });
-  var dol = dados.map(function(r) { return parseFloat(r['D\u00f3lar (R$/US$)']); });
+  var cobre = dados.map(function(r) { return toNum(r['Cobre (US$/t)']); });
+  var al = dados.map(function(r) { return toNum(r['Alum\u00ednio (US$/t)']); });
+  var dol = dados.map(function(r) { return toNum(r['D\u00f3lar (R$/US$)']); });
   if (chartObj) chartObj.destroy();
   var ctx = document.getElementById('chart').getContext('2d');
   chartObj = new Chart(ctx, {
@@ -243,11 +235,11 @@ function renderTable(dados) {
       '<td>' + (r['Data'] || '') + '</td>' +
       '<td>' + (r['Dia da Semana'] || '') + '</td>' +
       '<td><span class="badge ' + (r['Tipo']==='Real'?'badge-real':'badge-proj') + '">' + r['Tipo'] + '</span></td>' +
-      '<td>' + fmt(parseFloat(r[c1]),2) + '</td>' +
-      '<td>' + fmt(parseFloat(r[c2]),2) + '</td>' +
-      '<td>' + fmt(parseFloat(r[c3]),2) + '</td>' +
-      '<td>' + fmt(parseFloat(r[c4]),4) + '</td>' +
-      '<td>' + fmt(parseFloat(r[c5]),4) + '</td>' +
+      '<td>' + fmt(r[c1],2) + '</td>' +
+      '<td>' + fmt(r[c2],2) + '</td>' +
+      '<td>' + fmt(r[c3],2) + '</td>' +
+      '<td>' + fmt(r[c4],4) + '</td>' +
+      '<td>' + fmt(r[c5],4) + '</td>' +
       '</tr>';
   }).join('');
   document.getElementById('table-container').innerHTML =
