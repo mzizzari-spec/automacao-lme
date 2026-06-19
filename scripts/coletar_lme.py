@@ -91,11 +91,12 @@ def conectar_google_sheets():
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(creds)
 
-def limpar_numero(texto):
+def limpar_numero(texto, inteiro=False):
     if not texto or texto.strip().lower() in ("feriado", "-", ""):
         return None
     try:
-        return float(texto.strip().replace(".", "").replace(",", "."))
+        valor = float(texto.strip().replace(".", "").replace(",", "."))
+        return int(round(valor)) if inteiro else valor
     except ValueError:
         return None
 
@@ -145,8 +146,8 @@ def obter_dados_ontem():
             continue
         dia_celula = colunas[0].get_text(strip=True)
         if dia_site in dia_celula:
-            cobre = limpar_numero(colunas[1].get_text(strip=True)) if len(colunas) > 1 else None
-            aluminio = limpar_numero(colunas[3].get_text(strip=True)) if len(colunas) > 3 else None
+            cobre = limpar_numero(colunas[1].get_text(strip=True), inteiro=True) if len(colunas) > 1 else None
+            aluminio = limpar_numero(colunas[3].get_text(strip=True), inteiro=True) if len(colunas) > 3 else None
             dolar = limpar_numero(colunas[7].get_text(strip=True)) if len(colunas) > 7 else None
             return {
                 "data": ontem.strftime("%d/%m/%Y"),
