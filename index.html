@@ -319,8 +319,8 @@ function renderTable(dados) {
         '<td>' + fmt(r[c1],0) + '</td><td class="center">' + fmtVar(r[vc1]) + '</td>' +
         '<td>' + fmt(r[c2],0) + '</td><td class="center">' + fmtVar(r[vc2]) + '</td>' +
         '<td>' + fmt(r[c3],4) + '</td><td class="center">' + fmtVar(r[vc3]) + '</td>' +
-        '<td>' + fmt(r[c4],4) + '</td><td class="center">' + fmtVar(r[vc4]) + '</td>' +
-        '<td>' + fmt(r[c5],4) + '</td><td class="center">' + fmtVar(r[vc5]) + '</td>' +
+        '<td>' + fmt(r[c4],2) + '</td><td class="center">' + fmtVar(r[vc4]) + '</td>' +
+        '<td>' + fmt(r[c5],2) + '</td><td class="center">' + fmtVar(r[vc5]) + '</td>' +
         '</tr>';
     } else {
       var arr = item.dados;
@@ -353,11 +353,11 @@ function renderTable(dados) {
     linhas +
     '<tr class="media-row media-real-row"><td colspan="3">Media Real</td>' +
     '<td>' + fmt(mR_c,0) + '</td><td></td><td>' + fmt(mR_a,0) + '</td><td></td>' +
-    '<td>' + fmt(mR_d,4) + '</td><td></td><td>' + fmt(mR_ck,4) + '</td><td></td>' +
+    '<td>' + fmt(mR_d,4) + '</td><td></td><td>' + fmt(mR_ck,2) + '</td><td></td>' +
     '<td>' + fmt(mR_ak,4) + '</td><td></td></tr>' +
     '<tr class="media-row media-proj-row"><td colspan="3">Media Projetada</td>' +
     '<td>' + fmt(mP_c,0) + '</td><td></td><td>' + fmt(mP_a,0) + '</td><td></td>' +
-    '<td>' + fmt(mP_d,4) + '</td><td></td><td>' + fmt(mP_ck,4) + '</td><td></td>' +
+    '<td>' + fmt(mP_d,4) + '</td><td></td><td>' + fmt(mP_ck,2) + '</td><td></td>' +
     '<td>' + fmt(mP_ak,4) + '</td><td></td></tr>' +
     '</tbody></table>';
 
