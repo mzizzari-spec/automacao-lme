@@ -1,11 +1,14 @@
 name: Coleta Diaria LME
 
 on:
+  schedule:
+    - cron: '0 10 * * 1-5'
   workflow_dispatch:
 
 jobs:
-  coletar-lme:
+  coletar:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,8 +18,30 @@ jobs:
           python-version: '3.11'
       - name: Instalar
         run: pip install requests beautifulsoup4 gspread google-auth
-      - name: Executar
+      - name: Coletar LME
         env:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
         run: python scripts/coletar_lme.py
+
+  enviar-email:
+    runs-on: ubuntu-latest
+    needs: coletar
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar
+        run: pip install gspread google-auth
+      - name: Enviar e-mail
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_DESTINATARIOS: ${{ secrets.EMAIL_DESTINATARIOS }}
+        run: python scripts/enviar_email.py
