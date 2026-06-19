@@ -10,20 +10,20 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
   :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #22263a;
-    --border: #2e3250;
-    --copper: #e07b39;
-    --aluminium: #6c9fd8;
-    --dollar: #52c87a;
-    --projected: #8b8fa8;
-    --text: #e8eaf2;
-    --text-dim: #6b7094;
-    --real-badge: #1e3a2f;
-    --real-text: #52c87a;
-    --proj-badge: #1e2240;
-    --proj-text: #6c9fd8;
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface2: #f0f1f4;
+    --border: #e2e4ea;
+    --copper: #c45e1a;
+    --aluminium: #2b6cb0;
+    --dollar: #1a7a42;
+    --projected: #9aa0b4;
+    --text: #1a1d2e;
+    --text-dim: #6b7280;
+    --real-badge: #dcfce7;
+    --real-text: #15803d;
+    --proj-badge: #dbeafe;
+    --proj-text: #1d4ed8;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -429,6 +429,9 @@ function media(arr, campo, tipo) {
 }
 
 function fmt(v, dec=2) {
+  if (v === null || v === undefined) return '—';
+  const num = typeof v === 'string' ? parseFloat(v.replace(',,'.)) : Number(v);
+  if (isNaN(num)) return '—';
   if (v === null || v === undefined || isNaN(v)) return '—';
   return v.toLocaleString('pt-BR', {minimumFractionDigits: dec, maximumFractionDigits: dec});
 }
@@ -540,24 +543,24 @@ function renderChart(dados) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1a1d27',
-          borderColor: '#2e3250',
+          backgroundColor: '#ffffff',
+          borderColor: '#e2e4ea',
           borderWidth: 1,
-          titleColor: '#e8eaf2',
-          bodyColor: '#8b8fa8',
+          titleColor: '#1a1d2e',
+          bodyColor: '#6b7280',
           padding: 10,
         }
       },
       scales: {
         x: {
-          grid: { color: '#1e2235' },
-          ticks: { color: '#6b7094', font: { size: 11 } }
+          grid: { color: '#e2e4ea' },
+          ticks: { color: '#6b7280', font: { size: 11 } }
         },
         y: {
           position: 'left',
-          grid: { color: '#1e2235' },
-          ticks: { color: '#6b7094', font: { size: 11 } },
-          title: { display: true, text: 'US$/t', color: '#6b7094', font: { size: 11 } }
+          grid: { color: '#e2e4ea' },
+          ticks: { color: '#6b7280', font: { size: 11 } },
+          title: { display: true, text: 'US$/t', color: '#6b7280', font: { size: 11 } }
         },
         y2: {
           position: 'right',
