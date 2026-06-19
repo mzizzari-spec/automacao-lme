@@ -93,12 +93,17 @@ def conectar_google_sheets():
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(creds)
         
-def limpar_numero(texto, inteiro=False):
+def limpar_numero(texto, americano=False):
     if not texto or texto.strip().lower() in ("feriado", "-", ""):
         return None
     try:
-        # Site usa formato americano: 13,690.00
-        s = texto.strip().replace(",", "")  # remove vírgula de milhar
+        s = texto.strip()
+        if americano:
+            # Formato americano: 13,690.00 → remove vírgula de milhar
+            s = s.replace(",", "")
+        else:
+            # Formato brasileiro: 5,0923 → troca vírgula por ponto
+            s = s.replace(".", "").replace(",", ".")
         return float(s)
     except ValueError:
         return None
@@ -179,8 +184,8 @@ def buscar_dados_mes(ano, mes):
         except ValueError:
             continue
 
-        cobre = limpar_numero(colunas[1].get_text(strip=True))
-        aluminio = limpar_numero(colunas[3].get_text(strip=True))
+        cobre = limpar_numero(colunas[1].get_text(strip=True), americano=True)
+        aluminio = limpar_numero(colunas[3].get_text(strip=True), americano=True)
         dolar = limpar_numero(colunas[7].get_text(strip=True))
 
         if cobre or aluminio or dolar:
