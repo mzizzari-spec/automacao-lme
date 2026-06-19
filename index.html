@@ -70,6 +70,12 @@
   .updated { font-size: 11px; color: var(--text-dim); }
   @media (max-width: 900px) { .cards { grid-template-columns: repeat(3, 1fr); } header { flex-direction: column; align-items: flex-start; gap: 16px; } }
   @media (max-width: 600px) { .cards { grid-template-columns: repeat(2, 1fr); } body { padding: 16px; } }
+  .hist-section { margin-top: 32px; }
+  .hist-section-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .hist-filtro { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .hist-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+  .hist-btn:hover { border-color: var(--copper); color: var(--copper); }
+  .hist-btn.active { background: var(--copper); border-color: var(--copper); color: #fff; }
 </style>
 </head>
 <body>
@@ -104,12 +110,42 @@
     <div id="table-container"><div class="state"><div class="spinner"></div></div></div>
   </div>
 </div>
+
+<!-- HISTÓRICO MENSAL -->
+<div class="hist-section">
+  <div class="hist-section-title">Evolucao Historica Mensal</div>
+  <div class="hist-filtro" id="hist-filtro">
+    <div class="spinner" style="width:20px;height:20px;margin:0;"></div>
+  </div>
+  <div class="chart-wrapper" style="margin-bottom:20px;">
+    <div class="chart-header">
+      <span class="chart-title">Cobre · Aluminio · Dolar — historico</span>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--copper)"></div>Cobre</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--aluminium)"></div>Aluminio</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--dollar)"></div>Dolar</div>
+      </div>
+    </div>
+    <canvas id="chart-hist"></canvas>
+  </div>
+  <div class="table-wrapper" id="hist-container">
+    <div class="table-header">
+      <span class="table-title">Resumo mensal</span>
+    </div>
+    <div id="hist-tabela"><div class="state"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
 <script>
 var SHEET_ID = '10XV0A_U4LvG4Yc1a8lOjw81njnlu9lGjTHFTRGxHUHQ';
 var ABA = 'Consolidado';
+var ABA_HIST = 'Historico';
 var URL_SHEETS = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(ABA);
+var URL_HIST = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(ABA_HIST);
 var todosOsDados = [];
+var dadosHistorico = [];
 var chartObj = null;
+var chartHistObj = null;
 
 function toNum(v) {
   if (v === null || v === undefined || v === '') return null;
@@ -203,12 +239,12 @@ function renderCards(dados) {
 
   document.getElementById('cards').innerHTML =
     '<div class="card-section-title">Media Real</div>' +
-    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mR_c,2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mR_a,2) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mR_c,0) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mR_a,0) + '</div><div class="card-sub">US$/t</div></div>' +
     '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mR_d,4) + '</div><div class="card-sub">R$/US$</div></div>' +
     '<div class="card-section-title">Media Projetada</div>' +
-    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mP_c,2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mP_a,2) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mP_c,0) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mP_a,0) + '</div><div class="card-sub">US$/t</div></div>' +
     '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mP_d,4) + '</div><div class="card-sub">R$/US$</div></div>';
 }
 
@@ -319,8 +355,8 @@ function renderTable(dados) {
         '<td>' + fmt(r[c1],0) + '</td><td class="center">' + fmtVar(r[vc1]) + '</td>' +
         '<td>' + fmt(r[c2],0) + '</td><td class="center">' + fmtVar(r[vc2]) + '</td>' +
         '<td>' + fmt(r[c3],4) + '</td><td class="center">' + fmtVar(r[vc3]) + '</td>' +
-        '<td>' + fmt(r[c4],2) + '</td><td class="center">' + fmtVar(r[vc4]) + '</td>' +
-        '<td>' + fmt(r[c5],2) + '</td><td class="center">' + fmtVar(r[vc5]) + '</td>' +
+        '<td>' + fmt(r[c4],4) + '</td><td class="center">' + fmtVar(r[vc4]) + '</td>' +
+        '<td>' + fmt(r[c5],4) + '</td><td class="center">' + fmtVar(r[vc5]) + '</td>' +
         '</tr>';
     } else {
       var arr = item.dados;
@@ -353,11 +389,11 @@ function renderTable(dados) {
     linhas +
     '<tr class="media-row media-real-row"><td colspan="3">Media Real</td>' +
     '<td>' + fmt(mR_c,0) + '</td><td></td><td>' + fmt(mR_a,0) + '</td><td></td>' +
-    '<td>' + fmt(mR_d,4) + '</td><td></td><td>' + fmt(mR_ck,2) + '</td><td></td>' +
+    '<td>' + fmt(mR_d,4) + '</td><td></td><td>' + fmt(mR_ck,4) + '</td><td></td>' +
     '<td>' + fmt(mR_ak,4) + '</td><td></td></tr>' +
     '<tr class="media-row media-proj-row"><td colspan="3">Media Projetada</td>' +
     '<td>' + fmt(mP_c,0) + '</td><td></td><td>' + fmt(mP_a,0) + '</td><td></td>' +
-    '<td>' + fmt(mP_d,4) + '</td><td></td><td>' + fmt(mP_ck,2) + '</td><td></td>' +
+    '<td>' + fmt(mP_d,4) + '</td><td></td><td>' + fmt(mP_ck,4) + '</td><td></td>' +
     '<td>' + fmt(mP_ak,4) + '</td><td></td></tr>' +
     '</tbody></table>';
 
@@ -365,6 +401,118 @@ function renderTable(dados) {
 }
 
 carregarDados();
+carregarHistorico();
+
+function carregarHistorico() {
+  fetch(URL_HIST)
+    .then(function(resp) { return resp.text(); })
+    .then(function(text) {
+      var match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+      var json = JSON.parse(match[1]);
+      var rows = json.table.rows;
+      var cols = json.table.cols.map(function(c) { return c.label; });
+      dadosHistorico = rows.map(function(row) {
+        var obj = {};
+        cols.forEach(function(col, i) { obj[col] = row.c[i] ? row.c[i].v : null; });
+        return obj;
+      }).filter(function(r) { return r['Mês'] || r['Mes']; });
+      popularFiltroHistorico();
+      renderHistorico('Total');
+    })
+    .catch(function(e) {
+      console.error('Erro historico:', e);
+      document.getElementById('hist-container').innerHTML = '<div class="state">Erro ao carregar historico.</div>';
+    });
+}
+
+function popularFiltroHistorico() {
+  var anos = new Set();
+  dadosHistorico.forEach(function(r) {
+    var m = r['Mês'] || r['Mes'] || '';
+    var partes = m.split('/');
+    if (partes.length === 2) anos.add(partes[1]);
+  });
+  var anosArr = Array.from(anos).sort();
+  var btns = '<button onclick="renderHistorico('Total')" class="hist-btn active" id="btn-Total">Total</button>';
+  anosArr.forEach(function(ano) {
+    btns += '<button onclick="renderHistorico('' + ano + '')" class="hist-btn" id="btn-' + ano + '">' + ano + '</button>';
+  });
+  document.getElementById('hist-filtro').innerHTML = btns;
+}
+
+function renderHistorico(filtro) {
+  // Update active button
+  document.querySelectorAll('.hist-btn').forEach(function(b) { b.classList.remove('active'); });
+  var btn = document.getElementById('btn-' + filtro);
+  if (btn) btn.classList.add('active');
+
+  var dados = dadosHistorico.filter(function(r) {
+    if (filtro === 'Total') return true;
+    var m = r['Mês'] || r['Mes'] || '';
+    return m.indexOf(filtro) !== -1;
+  });
+
+  renderChartHistorico(dados);
+  renderTabelaHistorico(dados);
+}
+
+function renderChartHistorico(dados) {
+  var labels = dados.map(function(r) { return r['Mês'] || r['Mes'] || ''; });
+  var cobre = dados.map(function(r) { return toNum(r['Cobre (US$/t)']); });
+  var al = dados.map(function(r) { return toNum(r['Alumínio (US$/t)']); });
+  var dol = dados.map(function(r) { return toNum(r['Dólar (R$/US$)']); });
+
+  if (chartHistObj) chartHistObj.destroy();
+  var ctx = document.getElementById('chart-hist').getContext('2d');
+  chartHistObj = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Cobre', data: cobre, borderColor: '#c45e1a', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y' },
+        { label: 'Aluminio', data: al, borderColor: '#2b6cb0', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y' },
+        { label: 'Dolar', data: dol, borderColor: '#1a7a42', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y2' }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#fff', borderColor: '#e2e4ea', borderWidth: 1, titleColor: '#1a1d2e', bodyColor: '#6b7280', padding: 10 } },
+      scales: {
+        x: { grid: { color: '#e2e4ea' }, ticks: { color: '#6b7280', font: { size: 10 }, maxRotation: 45 } },
+        y: { position: 'left', grid: { color: '#e2e4ea' }, ticks: { color: '#6b7280', font: { size: 11 } }, title: { display: true, text: 'US$/t', color: '#6b7280', font: { size: 11 } } },
+        y2: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#1a7a42', font: { size: 11 } }, title: { display: true, text: 'R$/US$', color: '#1a7a42', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function renderTabelaHistorico(dados) {
+  var c1='Cobre (US$/t)', c2='Alumínio (US$/t)', c3='Dólar (R$/US$)', c4='Cobre (R$/kg)', c5='Alumínio (R$/kg)';
+  var vc1='Var. Cobre', vc2='Var. Alumínio', vc3='Var. Dólar', vc4='Var. Cobre/kg', vc5='Var. Alumínio/kg';
+
+  var linhas = dados.map(function(r) {
+    var mes = r['Mês'] || r['Mes'] || '';
+    return '<tr>' +
+      '<td style="font-family:Inter,sans-serif;font-size:12px;">' + mes + '</td>' +
+      '<td>' + fmt(r[c3],4) + '</td><td class="center">' + fmtVar(r[vc3]) + '</td>' +
+      '<td>' + fmt(r[c1],2) + '</td><td class="center">' + fmtVar(r[vc1]) + '</td>' +
+      '<td>' + fmt(r[c2],2) + '</td><td class="center">' + fmtVar(r[vc2]) + '</td>' +
+      '<td>' + fmt(r[c4],2) + '</td><td class="center">' + fmtVar(r[vc4]) + '</td>' +
+      '<td>' + fmt(r[c5],2) + '</td><td class="center">' + fmtVar(r[vc5]) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  document.getElementById('hist-tabela').innerHTML =
+    '<table><thead><tr>' +
+    '<th>Mes</th>' +
+    '<th>Dolar R$/US$</th><th class="center">Var%</th>' +
+    '<th>Cobre US$/t</th><th class="center">Var%</th>' +
+    '<th>Aluminio US$/t</th><th class="center">Var%</th>' +
+    '<th>Cobre R$/kg</th><th class="center">Var%</th>' +
+    '<th>Aluminio R$/kg</th><th class="center">Var%</th>' +
+    '</tr></thead><tbody>' + linhas + '</tbody></table>';
+}
 </script>
 </body>
 </html>
