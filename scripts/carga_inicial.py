@@ -96,11 +96,8 @@ def conectar_google_sheets():
 def limpar_numero(texto, inteiro=False):
     if not texto or texto.strip().lower() in ("feriado", "-", ""):
         return None
-    print(f"DEBUG limpar_numero: '{texto}'")
     try:
-        s = texto.strip().replace(",", ".")
-        valor = float(s)
-        return int(round(valor * 1000)) if inteiro else valor
+        return float(texto.strip().replace(".", "").replace(",", "."))
     except ValueError:
         return None
 
@@ -180,8 +177,8 @@ def buscar_dados_mes(ano, mes):
         except ValueError:
             continue
 
-        cobre = limpar_numero(colunas[1].get_text(strip=True), inteiro=True)
-        aluminio = limpar_numero(colunas[3].get_text(strip=True), inteiro=True)
+        cobre = limpar_numero(colunas[1].get_text(strip=True))
+        aluminio = limpar_numero(colunas[3].get_text(strip=True))
         dolar = limpar_numero(colunas[7].get_text(strip=True))
 
         if cobre or aluminio or dolar:
