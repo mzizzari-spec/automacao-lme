@@ -429,11 +429,10 @@ function media(arr, campo, tipo) {
 }
 
 function fmt(v, dec=2) {
-  if (v === null || v === undefined) return '—';
-  const num = typeof v === 'string' ? parseFloat(v.replace(',,'.)) : Number(v);
+  if (v === null || v === undefined || v === '') return '—';
+  const num = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
   if (isNaN(num)) return '—';
-  if (v === null || v === undefined || isNaN(v)) return '—';
-  return v.toLocaleString('pt-BR', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+  return num.toLocaleString('pt-BR', {minimumFractionDigits: dec, maximumFractionDigits: dec});
 }
 
 function renderCards(dados) {
@@ -482,8 +481,6 @@ function renderCards(dados) {
 
 function renderChart(dados) {
   const labels = dados.map(r => r['Data'] ? r['Data'].substring(0,5) : '');
-  const reais = dados.map(r => r['Tipo'] === 'Real' ? parseFloat(r['Cobre (US$/t)']) : null);
-  const proj = dados.map(r => r['Tipo'] === 'Projetado' ? parseFloat(r['Cobre (US$/t)']) : null);
   const al = dados.map(r => parseFloat(r['Alumínio (US$/t)']));
   const dol = dados.map(r => parseFloat(r['Dólar (R$/US$)']));
 
