@@ -55,8 +55,6 @@ def fmt(v, dec=2):
         return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
     except:
         return "-"
-    except:
-        return "-"
 
 
 def obter_dados_mes_atual(client):
