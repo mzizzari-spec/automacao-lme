@@ -1,0 +1,213 @@
+"""
+Script: coletar_lme.py
+Função: Coleta dados de Cobre, Alumínio e Dólar do site shockmetais.com.br/lme
+        e grava na planilha do Google Sheets automaticamente.
+Roda: Todo dia às 7h via GitHub Actions
+"""
+
+import os
+import re
+import json
+from datetime import datetime, timedelta
+
+import requests
+from bs4 import BeautifulSoup
+import gspread
+from google.oauth2.service_account import Credentials
+
+
+# ─────────────────────────────────────────
+# CONFIGURAÇÕES — edite apenas estas linhas
+# ─────────────────────────────────────────
+GOOGLE_SHEET_ID = os.environ.get("GOOGLE_SHEET_ID", "")   # ID da sua planilha Google Sheets
+ABA_DADOS = "Dados LME"                                    # Nome da aba onde os dados ficam
+URL_SITE = "https://shockmetais.com.br/lme"
+# ─────────────────────────────────────────
+
+
+def conectar_google_sheets():
+    """Conecta na API do Google Sheets usando as credenciais do GitHub Secret."""
+    creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+    if not creds_json:
+        raise ValueError("Secret GOOGLE_CREDENTIALS_JSON não encontrado!")
+
+    creds_dict = json.loads(creds_json)
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    client = gspread.authorize(creds)
+    return client
+
+
+def limpar_numero(texto):
+    """Converte '13.819,00' ou '5,0569' para float."""
+    if not texto or texto.strip().lower() in ("feriado", "-", ""):
+        return None
+    texto = texto.strip()
+    # Formato brasileiro: ponto como milhar, vírgula como decimal
+    texto = texto.replace(".", "").replace(",", ".")
+    try:
+        return float(texto)
+    except ValueError:
+        return None
+
+
+def obter_dados_ontem():
+    """
+    Acessa o site da Shockmetais e extrai os dados do dia anterior.
+    Retorna um dicionário com data, cobre, alumínio e dólar.
+    """
+    hoje = datetime.now()
+    ontem = hoje - timedelta(days=1)
+
+    # Se hoje for segunda, pega sexta (pula fim de semana)
+    if hoje.weekday() == 0:
+        ontem = hoje - timedelta(days=3)
+
+    dia_busca = ontem.strftime("%-d/%b").replace(
+        "Jan", "Jan").replace("Feb", "Fev").replace("Mar", "Mar").replace(
+        "Apr", "Abr").replace("May", "Mai").replace("Jun", "Jun").replace(
+        "Jul", "Jul").replace("Aug", "Ago").replace("Sep", "Set").replace(
+        "Oct", "Out").replace("Nov", "Nov").replace("Dec", "Dez")
+
+    # Formato do site: "17/Jun"
+    dia_site = ontem.strftime("%d/%b")
+    mes_en_pt = {
+        "Jan": "Jan", "Feb": "Fev", "Mar": "Mar", "Apr": "Abr",
+        "May": "Mai", "Jun": "Jun", "Jul": "Jul", "Aug": "Ago",
+        "Sep": "Set", "Oct": "Out", "Nov": "Nov", "Dec": "Dez"
+    }
+    mes_abrev = ontem.strftime("%b")
+    dia_site = f"{ontem.day:02d}/{mes_en_pt.get(mes_abrev, mes_abrev)}"
+
+    print(f"Buscando dados para: {dia_site} ({ontem.strftime('%d/%m/%Y')})")
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        )
+    }
+
+    response = requests.get(URL_SITE, headers=headers, timeout=30)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    # Encontra a tabela de dados diários
+    tabela = soup.find("table")
+    if not tabela:
+        raise ValueError("Tabela não encontrada no site!")
+
+    linhas = tabela.find_all("tr")
+    dados_encontrados = None
+
+    for linha in linhas:
+        colunas = linha.find_all("td")
+        if not colunas:
+            continue
+
+        dia_celula = colunas[0].get_text(strip=True)
+
+        # Verifica se é o dia que estamos buscando
+        if dia_site in dia_celula or ontem.strftime("%-d/%b") in dia_celula:
+            # Ordem das colunas: Dia | Cobre | Zinco | Alumínio | Chumbo | Estanho | Níquel | Dólar
+            cobre = limpar_numero(colunas[1].get_text(strip=True)) if len(colunas) > 1 else None
+            aluminio = limpar_numero(colunas[3].get_text(strip=True)) if len(colunas) > 3 else None
+            dolar = limpar_numero(colunas[7].get_text(strip=True)) if len(colunas) > 7 else None
+
+            dados_encontrados = {
+                "data": ontem.strftime("%d/%m/%Y"),
+                "dia_semana": ontem.strftime("%A").replace(
+                    "Monday", "Segunda").replace("Tuesday", "Terça").replace(
+                    "Wednesday", "Quarta").replace("Thursday", "Quinta").replace(
+                    "Friday", "Sexta"),
+                "cobre_usd_t": cobre,
+                "aluminio_usd_t": aluminio,
+                "dolar_brl": dolar,
+            }
+            print(f"✅ Dados encontrados: {dados_encontrados}")
+            break
+
+    if not dados_encontrados:
+        print(f"⚠️  Dia '{dia_site}' não encontrado na tabela (pode ser feriado ou fim de semana).")
+        return None
+
+    return dados_encontrados
+
+
+def gravar_no_sheets(client, dados):
+    """Grava uma nova linha na planilha Google Sheets."""
+    planilha = client.open_by_key(GOOGLE_SHEET_ID)
+
+    # Cria a aba se não existir
+    try:
+        aba = planilha.worksheet(ABA_DADOS)
+    except gspread.WorksheetNotFound:
+        aba = planilha.add_worksheet(title=ABA_DADOS, rows=1000, cols=10)
+        # Cabeçalho
+        aba.append_row([
+            "Data", "Dia da Semana",
+            "Cobre (US$/t)", "Alumínio (US$/t)", "Dólar (R$/US$)",
+            "Cobre (R$/kg)", "Alumínio (R$/kg)",
+            "Atualizado em"
+        ])
+        print("✅ Aba criada com cabeçalho.")
+
+    # Verifica se a data já foi inserida (evita duplicatas)
+    todas_datas = aba.col_values(1)
+    if dados["data"] in todas_datas:
+        print(f"⚠️  Data {dados['data']} já existe na planilha. Pulando.")
+        return
+
+    # Calcula Cobre e Alumínio em R$/kg
+    cobre_brl_kg = None
+    aluminio_brl_kg = None
+    if dados["cobre_usd_t"] and dados["dolar_brl"]:
+        cobre_brl_kg = round((dados["cobre_usd_t"] * dados["dolar_brl"]) / 1000, 4)
+    if dados["aluminio_usd_t"] and dados["dolar_brl"]:
+        aluminio_brl_kg = round((dados["aluminio_usd_t"] * dados["dolar_brl"]) / 1000, 4)
+
+    nova_linha = [
+        dados["data"],
+        dados["dia_semana"],
+        dados["cobre_usd_t"],
+        dados["aluminio_usd_t"],
+        dados["dolar_brl"],
+        cobre_brl_kg,
+        aluminio_brl_kg,
+        datetime.now().strftime("%d/%m/%Y %H:%M"),
+    ]
+
+    aba.append_row(nova_linha)
+    print(f"✅ Linha gravada: {nova_linha}")
+
+
+def main():
+    print("=" * 50)
+    print(f"Iniciando coleta LME — {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    print("=" * 50)
+
+    # 1. Coleta dados do site
+    dados = obter_dados_ontem()
+    if not dados:
+        print("Nenhum dado para gravar. Encerrando.")
+        return
+
+    # 2. Conecta no Google Sheets
+    print("Conectando ao Google Sheets...")
+    client = conectar_google_sheets()
+
+    # 3. Grava os dados
+    gravar_no_sheets(client, dados)
+
+    print("=" * 50)
+    print("✅ Coleta concluída com sucesso!")
+    print("=" * 50)
+
+
+if __name__ == "__main__":
+    main()
