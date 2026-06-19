@@ -427,23 +427,16 @@ function carregarHistorico() {
 function popularFiltroHistorico() {
   var anos = new Set();
   dadosHistorico.forEach(function(r) {
-    var m = r['Mes'] || '';
+    var m = r['Mês'] || r['Mes'] || '';
     var partes = m.split('/');
     if (partes.length === 2) anos.add(partes[1]);
   });
   var anosArr = Array.from(anos).sort();
-  var todos = ['Total'].concat(anosArr);
-  var btns = todos.map(function(f) {
-    return '<button class="hist-btn" data-filtro="' + f + '">' + f + '</button>';
-  }).join('');
-  document.getElementById('hist-filtro').innerHTML = btns;
-  document.querySelectorAll('.hist-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      renderHistorico(this.getAttribute('data-filtro'));
-    });
+  var btns = '<button onclick="renderHistorico('Total')" class="hist-btn active" id="btn-Total">Total</button>';
+  anosArr.forEach(function(ano) {
+    btns += '<button onclick="renderHistorico('' + ano + '')" class="hist-btn" id="btn-' + ano + '">' + ano + '</button>';
   });
-  renderHistorico('Total');
-}
+  document.getElementById('hist-filtro').innerHTML = btns;
 }
 
 function renderHistorico(filtro) {
