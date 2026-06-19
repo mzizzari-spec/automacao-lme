@@ -131,7 +131,7 @@ def para_float(valor):
 
 def calc_kg(usd_t, dolar):
     if usd_t and dolar:
-        return round((usd_t * dolar) / 1000, 4)
+        return round((usd_t * dolar) / 1000, 2)
     return None
 
 def calc_variacao(atual, anterior):
