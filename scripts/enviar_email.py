@@ -78,16 +78,40 @@ def calc_var(atual, anterior):
 
 def obter_dados_mes_atual(client):
     hoje = datetime.now()
-    nome_aba = f"{MESES_PT[hoje.month-1]}/{hoje.year}"
+    mes_atual = hoje.month
+    ano_atual = hoje.year
+    nome_aba = f"{MESES_PT[mes_atual-1]}/{ano_atual}"
+
+    mes_ant = mes_atual - 1
+    ano_ant = ano_atual
+    if mes_ant == 0:
+        mes_ant = 12
+        ano_ant -= 1
+    nome_aba_ant = f"{MESES_PT[mes_ant-1]}/{ano_ant}"
+
     planilha = client.open_by_key(GOOGLE_SHEET_ID)
     try:
         aba = planilha.worksheet(nome_aba)
     except gspread.WorksheetNotFound:
         raise ValueError(f"Aba '{nome_aba}' não encontrada!")
-    return aba.get_all_values(), nome_aba
+
+    dados = aba.get_all_values()
+
+    # Busca médias do mês anterior
+    media_real_ant = None
+    media_proj_ant = None
+    try:
+        aba_ant = planilha.worksheet(nome_aba_ant)
+        dados_ant = aba_ant.get_all_values()
+        media_real_ant = next((l for l in dados_ant if len(l) > 0 and l[0] == "Média Real"), None)
+        media_proj_ant = next((l for l in dados_ant if len(l) > 0 and l[0] == "Média Projetada"), None)
+    except:
+        pass
+
+    return dados, nome_aba, media_real_ant, media_proj_ant
 
 
-def gerar_html_email(dados, nome_mes):
+def gerar_html_email(dados, nome_mes, media_real_ant=None, media_proj_ant=None):
     hoje = datetime.now()
 
     linhas_dias = [l for l in dados[1:] if len(l) > 2 and l[2] in ("Real", "Projetado")]
@@ -112,22 +136,31 @@ def gerar_html_email(dados, nome_mes):
     cards_real = ""
     cards_proj = ""
     if media_real and len(media_real) > 12:
+        def var_r(col):
+            atual = to_float(media_real[col]) if len(media_real) > col else None
+            ant = to_float(media_real_ant[col]) if media_real_ant and len(media_real_ant) > col else None
+            print(f"DEBUG var_r col={col} atual={atual} ant={ant}")
+            return calc_var(atual, ant)
         cards_real = f"""
         <tr>
-          {card("Cobre Real", media_real[3], media_real[4], "#c45e1a", "US$/t", width="20%")}
-          {card("Alumínio Real", media_real[5], media_real[6], "#2b6cb0", "US$/t", width="20%")}
-          {card("Dólar Real", media_real[7], media_real[8], "#1a7a42", "R$/US$", dec=4, width="20%")}
-          {card("Cobre R$/kg Real", media_real[9], media_real[10], "#c45e1a", "R$/kg", width="20%")}
-          {card("Alumínio R$/kg Real", media_real[11], media_real[12], "#2b6cb0", "R$/kg", width="20%")}
+          {card("Cobre Real", media_real[3], var_r(3), "#c45e1a", "US$/t", width="20%")}
+          {card("Alumínio Real", media_real[5], var_r(5), "#2b6cb0", "US$/t", width="20%")}
+          {card("Dólar Real", media_real[7], var_r(7), "#1a7a42", "R$/US$", dec=4, width="20%")}
+          {card("Cobre R$/kg Real", media_real[9], var_r(9), "#c45e1a", "R$/kg", width="20%")}
+          {card("Alumínio R$/kg Real", media_real[11], var_r(11), "#2b6cb0", "R$/kg", width="20%")}
         </tr>"""
     if media_proj and len(media_proj) > 12:
+        def var_p(col):
+            atual = to_float(media_proj[col]) if len(media_proj) > col else None
+            ant = to_float(media_proj_ant[col]) if media_proj_ant and len(media_proj_ant) > col else None
+            return calc_var(atual, ant)
         cards_proj = f"""
         <tr>
-          {card("Cobre Proj.", media_proj[3], media_proj[4], "#c45e1a", "US$/t", width="20%")}
-          {card("Alumínio Proj.", media_proj[5], media_proj[6], "#2b6cb0", "US$/t", width="20%")}
-          {card("Dólar Proj.", media_proj[7], media_proj[8], "#1a7a42", "R$/US$", dec=4, width="20%")}
-          {card("Cobre R$/kg Proj.", media_proj[9], media_proj[10], "#c45e1a", "R$/kg", width="20%")}
-          {card("Alumínio R$/kg Proj.", media_proj[11], media_proj[12], "#2b6cb0", "R$/kg", width="20%")}
+          {card("Cobre Proj.", media_proj[3], var_p(3), "#c45e1a", "US$/t", width="20%")}
+          {card("Alumínio Proj.", media_proj[5], var_p(5), "#2b6cb0", "US$/t", width="20%")}
+          {card("Dólar Proj.", media_proj[7], var_p(7), "#1a7a42", "R$/US$", dec=4, width="20%")}
+          {card("Cobre R$/kg Proj.", media_proj[9], var_p(9), "#c45e1a", "R$/kg", width="20%")}
+          {card("Alumínio R$/kg Proj.", media_proj[11], var_p(11), "#2b6cb0", "R$/kg", width="20%")}
         </tr>"""
 
     # Gera linhas da tabela
@@ -297,8 +330,8 @@ def main():
     print(f"Iniciando envio — {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     print("=" * 50)
     client = conectar_google_sheets()
-    dados, nome_mes = obter_dados_mes_atual(client)
-    html = gerar_html_email(dados, nome_mes)
+    dados, nome_mes, media_real_ant, media_proj_ant = obter_dados_mes_atual(client)
+    html = gerar_html_email(dados, nome_mes, media_real_ant, media_proj_ant)
     enviar_email(html, nome_mes)
     print("✅ Concluído!")
 
