@@ -263,6 +263,10 @@ def recalcular_aba(planilha, aba, ano, mes):
         if data_str in datas_reais:
             r = datas_reais[data_str]
             dolar = para_float(r[7])
+            if dolar is None:
+                dolar = ultimo_dolar_conhecido
+            else:
+                ultimo_dolar_conhecido = dolar
             # Se dolar for None, usa o último conhecido
             if dolar is None:
                 dolar = ultimo_dolar_conhecido
