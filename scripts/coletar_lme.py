@@ -240,6 +240,10 @@ def recalcular_aba(planilha, aba, ano, mes):
     ultimo_dolar = para_float(ultimo[7])
 
     datas_reais = {r[0]: r for r in linhas_reais}
+    # Inclui também linhas com valores vazios inseridas manualmente
+    linhas_manuais = [r for r in todos_registros[1:] if r and len(r) > 2 and r[2] == "Real" and r[0] not in datas_reais]
+    for r in linhas_manuais:
+        datas_reais[r[0]] = r
     dias_uteis = dias_uteis_do_mes(ano, mes)
     dias_semana_nomes = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
     hoje = datetime.now().date()
@@ -271,7 +275,7 @@ def recalcular_aba(planilha, aba, ano, mes):
                 "tipo": "Real",
                 "dia_semana": r[1],
             }
-        elif d >= hoje:
+        elif d > hoje:
             cobre_kg = calc_kg(ultimo_cobre, ultimo_dolar)
             aluminio_kg = calc_kg(ultimo_aluminio, ultimo_dolar)
             valores_por_data[data_str] = {
@@ -293,6 +297,28 @@ def recalcular_aba(planilha, aba, ano, mes):
     for d in dias_uteis:
         data_str = d.strftime("%d/%m/%Y")
         if data_str not in valores_por_data:
+            # Dia passado sem dados no site — grava vazio para preenchimento manual
+            if d < hoje:
+                dias_semana_nomes_local = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta"]
+                linha_vazia = [
+                    data_str, dias_semana_nomes_local[d.weekday()], "Real",
+                    None, None, None, None, None, None, None, None, None, None
+                ]
+                todas_linhas.append(linha_vazia)
+                semana_atual.append(linha_vazia)
+                # Verifica fim de semana
+                proximo_dia_util = next((dd for dd in dias_uteis if dd > d), None)
+                num_semana = d.isocalendar()[1]
+                fim_semana = (d.weekday() == 4 or proximo_dia_util is None or
+                             proximo_dia_util.isocalendar()[1] != num_semana)
+                if fim_semana and semana_atual:
+                    media_anterior = next(
+                        (l for l in reversed(todas_linhas) if l and l[0] == "Media Semana"),
+                        None
+                    )
+                    media_linha = calcular_media_semana(semana_atual, media_anterior)
+                    todas_linhas.append(media_linha)
+                    semana_atual = []
             continue
 
         v = valores_por_data[data_str]
