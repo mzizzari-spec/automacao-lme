@@ -271,7 +271,7 @@ def recalcular_aba(planilha, aba, ano, mes):
                 "tipo": "Real",
                 "dia_semana": r[1],
             }
-        elif d > hoje:
+        elif d >= hoje:
             cobre_kg = calc_kg(ultimo_cobre, ultimo_dolar)
             aluminio_kg = calc_kg(ultimo_aluminio, ultimo_dolar)
             valores_por_data[data_str] = {
