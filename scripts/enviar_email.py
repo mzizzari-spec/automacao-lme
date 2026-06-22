@@ -265,7 +265,8 @@ def enviar_email(html, nome_mes):
     msg = MIMEMultipart('alternative')
     msg['Subject'] = assunto
     msg['From'] = GMAIL_USER
-    msg['To'] = ", ".join(DESTINATARIOS)
+    msg['To'] = GMAIL_USER
+    msg['Bcc'] = ", ".join(DESTINATARIOS)
     msg.attach(MIMEText(html, 'html', 'utf-8'))
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
         server.login(GMAIL_USER, GMAIL_PASSWORD)
