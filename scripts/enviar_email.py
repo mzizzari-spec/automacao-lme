@@ -106,7 +106,9 @@ def obter_dados_mes_atual(client):
         hist = planilha.worksheet("Historico")
         dados_hist = hist.get_all_values()
         # Busca linha do mês anterior
-        linha_ant = next((l for l in dados_hist if len(l) > 0 and l[0] == nome_mes_ant), None)
+        # Pula cabeçalho (linha 0) e busca pelo nome do mês
+        linha_ant = next((l for l in dados_hist[1:] if len(l) > 0 and l[0] == nome_mes_ant), None)
+        print(f"DEBUG: buscando '{nome_mes_ant}' no Historico, encontrou: {linha_ant}")
         if linha_ant:
             # Historico: [Mes, Dolar, Var.Dolar, Cobre, Var.Cobre, Aluminio, Var.Al, CobreKg, Var.CobreKg, AlKg, Var.AlKg]
             # Monta lista no formato da aba mensal para usar col3,5,7,9,11
@@ -120,10 +122,10 @@ def obter_dados_mes_atual(client):
     except Exception as e:
         print(f"⚠️  Historico não encontrado: {e}")
 
-    return dados, nome_aba, media_real_ant, media_real_ant  # usa mesma ref para real e proj
+    return dados, nome_aba, media_real_ant
 
 
-def gerar_html_email(dados, nome_mes, media_real_ant=None, media_proj_ant=None):
+def gerar_html_email(dados, nome_mes, media_real_ant=None):
     hoje = datetime.now()
 
     linhas_dias = [l for l in dados[1:] if len(l) > 2 and l[2] in ("Real", "Projetado")]
@@ -255,7 +257,7 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None, media_proj_ant=None):
       <h1 style="font-size:20px;font-weight:700;color:#1a1d2e;margin:0;">LME <span style="color:#1a6080;">Metais</span></h1>
       <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Cotações {nome_mes} — {hoje.strftime('%d/%m/%Y %H:%M')}</p>
     </div>
-   <img src="https://mzizzari-spec.github.io/automacao-lme/GMC-logo.png" alt="Grupo Melo Cordeiro" height="100" style="height:48px;max-height:48px;width:auto;">
+    <img src="https://mzizzari-spec.github.io/automacao-lme/GMC-logo.png" alt="Grupo Melo Cordeiro" style="height:48px;object-fit:contain;">
   </div>
 
   <table width="100%" cellpadding="0" cellspacing="8" style="margin-bottom:20px;">
@@ -344,8 +346,8 @@ def main():
     print(f"Iniciando envio — {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     print("=" * 50)
     client = conectar_google_sheets()
-    dados, nome_mes, media_real_ant, media_proj_ant = obter_dados_mes_atual(client)
-    html = gerar_html_email(dados, nome_mes, media_real_ant, media_proj_ant)
+    dados, nome_mes, media_real_ant = obter_dados_mes_atual(client)
+    html = gerar_html_email(dados, nome_mes, media_real_ant)
     enviar_email(html, nome_mes)
     print("✅ Concluído!")
 
