@@ -234,7 +234,7 @@ def recalcular_aba(planilha, aba, ano, mes):
 
     # Pega só linhas reais (sem cabeçalho, médias etc)
    linhas_reais = [r for r in todos_registros[1:] if r and len(r) > 2 and r[2] == "Real"]
-   if not linhas_reais:
+    if not linhas_reais:
         return []
 # Preserva linhas inseridas manualmente (mesmo com valores vazios)
 datas_reais = {r[0]: r for r in linhas_reais}
