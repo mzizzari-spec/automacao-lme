@@ -249,6 +249,7 @@ def recalcular_aba(planilha, aba, ano, mes):
 
     # datas_reais inclui TODAS as linhas Real, inclusive manuais vazias
     datas_reais = {r[0]: r for r in todas_reais}
+    print("DEBUG datas_reais:", list(datas_reais.keys()))
     dias_uteis = dias_uteis_do_mes(ano, mes)
     dias_semana_nomes = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
     hoje = datetime.now().date()
