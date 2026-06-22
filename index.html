@@ -25,7 +25,7 @@
   .month-selector { display: flex; align-items: center; gap: 8px; }
   .month-selector label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
   .month-selector select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; cursor: pointer; outline: none; }
-  .cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 28px; }
+  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 28px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
   .card-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
   .card-value { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 500; }
@@ -230,19 +230,25 @@ function filtrarMes() {
 }
 
 function renderCards(dados) {
-  var c1 = 'Cobre (US$/t)', c2 = 'Alum\u00ednio (US$/t)', c3 = 'D\u00f3lar (R$/US$)';
+  var c1 = 'Cobre (US$/t)', c2 = 'Alum\u00ednio (US$/t)', c3 = 'D\u00f3lar (R$/US$)', c4 = 'Cobre (R$/kg)', c5 = 'Alum\u00ednio (R$/kg)';
   var mR_c = calcMedia(dados,c1,'Real'), mP_c = calcMedia(dados,c1,null);
   var mR_a = calcMedia(dados,c2,'Real'), mP_a = calcMedia(dados,c2,null);
   var mR_d = calcMedia(dados,c3,'Real'), mP_d = calcMedia(dados,c3,null);
+  var mR_ck = calcMedia(dados,c4,'Real'), mP_ck = calcMedia(dados,c4,null);
+  var mR_ak = calcMedia(dados,c5,'Real'), mP_ak = calcMedia(dados,c5,null);
   document.getElementById('cards').innerHTML =
     '<div class="card-section-title">Media Real</div>' +
     '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mR_c,2) + '</div><div class="card-sub">US$/t</div></div>' +
     '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mR_a,2) + '</div><div class="card-sub">US$/t</div></div>' +
     '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mR_d,4) + '</div><div class="card-sub">R$/US$</div></div>' +
+    '<div class="card copper"><div class="card-label">Cobre R$/kg</div><div class="card-value">' + fmt(mR_ck,2) + '</div><div class="card-sub">R$/kg</div></div>' +
+    '<div class="card aluminium"><div class="card-label">Aluminio R$/kg</div><div class="card-value">' + fmt(mR_ak,2) + '</div><div class="card-sub">R$/kg</div></div>' +
     '<div class="card-section-title">Media Projetada</div>' +
     '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mP_c,2) + '</div><div class="card-sub">US$/t</div></div>' +
     '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mP_a,2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mP_d,4) + '</div><div class="card-sub">R$/US$</div></div>';
+    '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mP_d,4) + '</div><div class="card-sub">R$/US$</div></div>' +
+    '<div class="card copper"><div class="card-label">Cobre R$/kg</div><div class="card-value">' + fmt(mP_ck,2) + '</div><div class="card-sub">R$/kg</div></div>' +
+    '<div class="card aluminium"><div class="card-label">Aluminio R$/kg</div><div class="card-value">' + fmt(mP_ak,2) + '</div><div class="card-sub">R$/kg</div></div>';
 }
 
 function renderChart(dados) {
