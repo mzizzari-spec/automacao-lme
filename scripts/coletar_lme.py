@@ -233,21 +233,22 @@ def recalcular_aba(planilha, aba, ano, mes):
         return []
 
     # Pega só linhas reais (sem cabeçalho, médias etc)
-    linhas_reais = [r for r in todos_registros[1:] if r and len(r) > 2 and r[2] == "Real"]
-    if not linhas_reais:
+    # Pega TODAS as linhas Real — com ou sem valores
+    todas_reais = [r for r in todos_registros[1:] if r and len(r) > 2 and r[2] == "Real"]
+    # Linhas com dados reais (tem Cobre preenchido)
+    linhas_reais = [r for r in todas_reais if para_float(r[3]) is not None]
+
+    if not todas_reais:
         return []
 
-    # Último valor real para projeções
-    ultimo = linhas_reais[-1]
+    # Último valor real com dados para projeções
+    ultimo = linhas_reais[-1] if linhas_reais else todas_reais[-1]
     ultimo_cobre = para_float(ultimo[3])
     ultimo_aluminio = para_float(ultimo[5])
     ultimo_dolar = para_float(ultimo[7])
 
-    datas_reais = {r[0]: r for r in linhas_reais}
-    # Inclui linhas inseridas manualmente (mesmo com valores vazios)
-    for r in todos_registros[1:]:
-        if r and len(r) > 2 and r[2] == "Real" and r[0] not in datas_reais:
-            datas_reais[r[0]] = r
+    # datas_reais inclui TODAS as linhas Real, inclusive manuais vazias
+    datas_reais = {r[0]: r for r in todas_reais}
     dias_uteis = dias_uteis_do_mes(ano, mes)
     dias_semana_nomes = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
     hoje = datetime.now().date()
@@ -263,10 +264,6 @@ def recalcular_aba(planilha, aba, ano, mes):
         if data_str in datas_reais:
             r = datas_reais[data_str]
             dolar = para_float(r[7])
-            if dolar is None:
-                dolar = ultimo_dolar_conhecido
-            else:
-                ultimo_dolar_conhecido = dolar
             # Se dolar for None, usa o último conhecido
             if dolar is None:
                 dolar = ultimo_dolar_conhecido
@@ -293,17 +290,6 @@ def recalcular_aba(planilha, aba, ano, mes):
                 "cobre_kg": cobre_kg,
                 "aluminio_kg": aluminio_kg,
                 "tipo": "Projetado",
-                "dia_semana": dias_semana_nomes[d.weekday()],
-            }
-        elif d < hoje:
-            # Dia passado sem dados - preserva como linha vazia
-            valores_por_data[data_str] = {
-                "cobre": None,
-                "aluminio": None,
-                "dolar": None,
-                "cobre_kg": None,
-                "aluminio_kg": None,
-                "tipo": "Real",
                 "dia_semana": dias_semana_nomes[d.weekday()],
             }
 
