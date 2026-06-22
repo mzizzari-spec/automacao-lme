@@ -262,12 +262,12 @@ def recalcular_aba(planilha, aba, ano, mes):
     valores_por_data = {}
     for d in dias_uteis:
         data_str = d.strftime("%d/%m/%Y")
+        print("DEBUG comparando:", data_str, "in datas_reais:", data_str in datas_reais)
         if data_str in datas_reais:
             r = datas_reais[data_str]
             if data_str == "04/06/2026":
                 print("DEBUG dia04:", r)
             dolar = para_float(r[7])
-            # Se dolar for None, usa o último conhecido
             if dolar is None:
                 dolar = ultimo_dolar_conhecido
             else:
