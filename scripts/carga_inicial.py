@@ -192,7 +192,7 @@ def processar_mes(planilha, ano, mes, dados_reais):
                 dolar = ultimo_dolar
             if dolar is not None:
                 ultimo_dolar = dolar
-        elif ultimo_real and d > hoje:
+        elif ultimo_real and d >= hoje:
             tipo = "Projetado"
             cobre = ultimo_real["cobre"]; aluminio = ultimo_real["aluminio"]; dolar = ultimo_real["dolar"]
         else:
