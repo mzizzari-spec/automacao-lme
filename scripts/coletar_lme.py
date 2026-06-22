@@ -172,6 +172,10 @@ def obter_dados_ontem():
             continue
         dia_celula = colunas[0].get_text(strip=True)
         if dia_site in dia_celula:
+            # Nunca pega o dia atual como Real
+            if ontem.date() == datetime.now().date():
+                print(f"⚠️  Dia '{dia_site}' é hoje — ignorando para manter como Projetado.")
+                return None
             cobre = limpar_numero(colunas[1].get_text(strip=True), americano=True)
             aluminio = limpar_numero(colunas[3].get_text(strip=True), americano=True)
             dolar = limpar_numero(colunas[7].get_text(strip=True))
