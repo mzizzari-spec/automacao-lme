@@ -255,7 +255,7 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None, media_proj_ant=None):
       <h1 style="font-size:20px;font-weight:700;color:#1a1d2e;margin:0;">LME <span style="color:#1a6080;">Metais</span></h1>
       <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Cotações {nome_mes} — {hoje.strftime('%d/%m/%Y %H:%M')}</p>
     </div>
-    <img src="https://mzizzari-spec.github.io/automacao-lme/GMC-logo.png" alt="Grupo Melo Cordeiro" style="height:48px;object-fit:contain;">
+   <img src="https://mzizzari-spec.github.io/automacao-lme/GMC-logo.png" alt="Grupo Melo Cordeiro" height="100" style="height:48px;max-height:48px;width:auto;">
   </div>
 
   <table width="100%" cellpadding="0" cellspacing="8" style="margin-bottom:20px;">
