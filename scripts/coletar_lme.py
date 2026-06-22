@@ -249,7 +249,6 @@ def recalcular_aba(planilha, aba, ano, mes):
 
     # datas_reais inclui TODAS as linhas Real, inclusive manuais vazias
     datas_reais = {r[0]: r for r in todas_reais}
-    print("DEBUG datas_reais:", list(datas_reais.keys()))
     dias_uteis = dias_uteis_do_mes(ano, mes)
     dias_semana_nomes = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
     hoje = datetime.now().date()
@@ -262,7 +261,6 @@ def recalcular_aba(planilha, aba, ano, mes):
     valores_por_data = {}
     for d in dias_uteis:
         data_str = d.strftime("%d/%m/%Y")
-        print("DEBUG comparando:", data_str, "in datas_reais:", data_str in datas_reais)
         if data_str in datas_reais:
             r = datas_reais[data_str]
             if data_str == "04/06/2026":
