@@ -233,9 +233,11 @@ def recalcular_aba(planilha, aba, ano, mes):
         return []
 
     # Pega só linhas reais (sem cabeçalho, médias etc)
-    linhas_reais = [r for r in todos_registros[1:] if r and len(r) > 2 and r[2] == "Real"]
-    if not linhas_reais:
+   linhas_reais = [r for r in todos_registros[1:] if r and len(r) > 2 and r[2] == "Real"]
+   if not linhas_reais:
         return []
+# Preserva linhas inseridas manualmente (mesmo com valores vazios)
+datas_reais = {r[0]: r for r in linhas_reais}
 
     # Último valor real para projeções
     ultimo = linhas_reais[-1]
@@ -279,7 +281,7 @@ def recalcular_aba(planilha, aba, ano, mes):
                 "tipo": "Real",
                 "dia_semana": r[1],
             }
-        elif d > hoje:
+        elif d >= hoje:
             cobre_kg = calc_kg(ultimo_cobre, ultimo_dolar)
             aluminio_kg = calc_kg(ultimo_aluminio, ultimo_dolar)
             valores_por_data[data_str] = {
