@@ -164,10 +164,9 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
         </tr>"""
     if media_proj and len(media_proj) > 12:
         def var_p(col):
-            proj = to_float(media_proj[col]) if len(media_proj) > col else None
-            real = to_float(media_real[col]) if media_real and len(media_real) > col else None
-            print(f"DEBUG var_p col={col} proj={proj} real={real}")
-            return calc_var(proj, real)
+            atual = to_float(media_proj[col]) if len(media_proj) > col else None
+            ant = to_float(media_proj_ant[col]) if media_proj_ant and len(media_proj_ant) > col else None
+            return calc_var(atual, ant)
         cards_proj = f"""
         <tr>
           {card("Cobre Proj.", media_proj[3], var_p(3), "#c45e1a", "US$/t", width="20%")}
@@ -258,7 +257,7 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
       <h1 style="font-size:20px;font-weight:700;color:#1a1d2e;margin:0;">LME <span style="color:#1a6080;">Metais</span></h1>
       <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Cotações {nome_mes} — {hoje.strftime('%d/%m/%Y %H:%M')}</p>
     </div>
-    <img src="https://mzizzari-spec.github.io/automacao-lme/GMC-logo.png" alt="Grupo Melo Cordeiro" height="48" width="auto" style="height:48px;max-width:200px;display:block;">
+    <img src="https://mzizzari-spec.github.io/automacao-lme/GMC-logo.png" alt="Grupo Melo Cordeiro" style="height:48px;object-fit:contain;">
   </div>
 
   <table width="100%" cellpadding="0" cellspacing="8" style="margin-bottom:20px;">
@@ -295,19 +294,19 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
         {linhas_html}
         <tr style="background:#f0f1f4;border-top:2px solid #e2e4ea;">
           <td colspan="3" style="padding:7px 10px;font-size:11px;font-weight:600;color:#15803d;">Média Real</td>
-          {td_media(media_real, 3, 0)}{td_media_var(media_real, 4)}
-          {td_media(media_real, 5, 0)}{td_media_var(media_real, 6)}
-          {td_media(media_real, 7, 4)}{td_media_var(media_real, 8)}
-          {td_media(media_real, 9, 2)}{td_media_var(media_real, 10)}
-          {td_media(media_real, 11, 2)}{td_media_var(media_real, 12)}
+          {td_media(media_real, 3, 0)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_real[3]) if media_real else None, to_float(media_real_ant[3]) if media_real_ant else None))}</td>
+          {td_media(media_real, 5, 0)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_real[5]) if media_real else None, to_float(media_real_ant[5]) if media_real_ant else None))}</td>
+          {td_media(media_real, 7, 4)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_real[7]) if media_real else None, to_float(media_real_ant[7]) if media_real_ant else None))}</td>
+          {td_media(media_real, 9, 2)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_real[9]) if media_real else None, to_float(media_real_ant[9]) if media_real_ant else None))}</td>
+          {td_media(media_real, 11, 2)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_real[11]) if media_real else None, to_float(media_real_ant[11]) if media_real_ant else None))}</td>
         </tr>
         <tr style="background:#f0f1f4;">
           <td colspan="3" style="padding:7px 10px;font-size:11px;font-weight:600;color:#1d4ed8;">Média Projetada</td>
-          {td_media(media_proj, 3, 0)}{td_media_var(media_proj, 4)}
-          {td_media(media_proj, 5, 0)}{td_media_var(media_proj, 6)}
-          {td_media(media_proj, 7, 4)}{td_media_var(media_proj, 8)}
-          {td_media(media_proj, 9, 2)}{td_media_var(media_proj, 10)}
-          {td_media(media_proj, 11, 2)}{td_media_var(media_proj, 12)}
+          {td_media(media_proj, 3, 0)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[3]) if media_proj else None, to_float(media_real[3]) if media_real else None))}</td>
+          {td_media(media_proj, 5, 0)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[5]) if media_proj else None, to_float(media_real[5]) if media_real else None))}</td>
+          {td_media(media_proj, 7, 4)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[7]) if media_proj else None, to_float(media_real[7]) if media_real else None))}</td>
+          {td_media(media_proj, 9, 2)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[9]) if media_proj else None, to_float(media_real[9]) if media_real else None))}</td>
+          {td_media(media_proj, 11, 2)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[11]) if media_proj else None, to_float(media_real[11]) if media_real else None))}</td>
         </tr>
       </tbody>
     </table>
