@@ -91,12 +91,12 @@ def gerar_html_email(dados, nome_mes):
     reais = [l for l in linhas_dias if l[2] == "Real"]
     projetados = [l for l in linhas_dias if l[2] == "Projetado"]
 
-    def card(label, val, var, cor, unidade, dec=2):
+    def card(label, val, var, cor, unidade, dec=2, width="20%"):
         return f"""
-        <td style="padding:0 8px 0 0;" width="33%">
-          <div style="background:#fff;border:1px solid #e2e4ea;border-radius:8px;padding:14px;">
+        <td style="padding:0 4px;" width="{width}">
+          <div style="background:#fff;border:1px solid #e2e4ea;border-radius:8px;padding:12px;">
             <div style="font-size:10px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">{label}</div>
-            <div style="font-size:16px;font-weight:600;color:{cor};font-family:monospace;">{fmt(val, dec)}</div>
+            <div style="font-size:15px;font-weight:600;color:{cor};font-family:monospace;">{fmt(val, dec)}</div>
             <div style="font-size:10px;color:#6b7280;margin-top:2px;">{unidade} &nbsp; {fmt_var(var)}</div>
           </div>
         </td>"""
@@ -107,20 +107,20 @@ def gerar_html_email(dados, nome_mes):
     if media_real and len(media_real) > 12:
         cards_real = f"""
         <tr>
-          {card("Cobre Real", media_real[3], media_real[4], "#c45e1a", "US$/t")}
-          {card("Alumínio Real", media_real[5], media_real[6], "#2b6cb0", "US$/t")}
-          {card("Dólar Real", media_real[7], media_real[8], "#1a7a42", "R$/US$", dec=4)}
-          {card("Cobre R$/kg Real", media_real[9], media_real[10], "#c45e1a", "R$/kg")}
-          {card("Alumínio R$/kg Real", media_real[11], media_real[12], "#2b6cb0", "R$/kg")}
+          {card("Cobre Real", media_real[3], media_real[4], "#c45e1a", "US$/t", width="20%")}
+          {card("Alumínio Real", media_real[5], media_real[6], "#2b6cb0", "US$/t", width="20%")}
+          {card("Dólar Real", media_real[7], media_real[8], "#1a7a42", "R$/US$", dec=4, width="20%")}
+          {card("Cobre R$/kg Real", media_real[9], media_real[10], "#c45e1a", "R$/kg", width="20%")}
+          {card("Alumínio R$/kg Real", media_real[11], media_real[12], "#2b6cb0", "R$/kg", width="20%")}
         </tr>"""
     if media_proj and len(media_proj) > 12:
         cards_proj = f"""
         <tr>
-          {card("Cobre Proj.", media_proj[3], media_proj[4], "#c45e1a", "US$/t")}
-          {card("Alumínio Proj.", media_proj[5], media_proj[6], "#2b6cb0", "US$/t")}
-          {card("Dólar Proj.", media_proj[7], media_proj[8], "#1a7a42", "R$/US$", dec=4)}
-          {card("Cobre R$/kg Proj.", media_proj[9], media_proj[10], "#c45e1a", "R$/kg")}
-          {card("Alumínio R$/kg Proj.", media_proj[11], media_proj[12], "#2b6cb0", "R$/kg")}
+          {card("Cobre Proj.", media_proj[3], media_proj[4], "#c45e1a", "US$/t", width="20%")}
+          {card("Alumínio Proj.", media_proj[5], media_proj[6], "#2b6cb0", "US$/t", width="20%")}
+          {card("Dólar Proj.", media_proj[7], media_proj[8], "#1a7a42", "R$/US$", dec=4, width="20%")}
+          {card("Cobre R$/kg Proj.", media_proj[9], media_proj[10], "#c45e1a", "R$/kg", width="20%")}
+          {card("Alumínio R$/kg Proj.", media_proj[11], media_proj[12], "#2b6cb0", "R$/kg", width="20%")}
         </tr>"""
 
     # Linhas da tabela
