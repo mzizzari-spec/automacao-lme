@@ -248,17 +248,26 @@ def recalcular_aba(planilha, aba, ano, mes):
     ultimo_mes_ant = obter_ultimo_valor_mes_anterior(planilha, ano, mes)
 
     # Monta lista de valores por data para calcular variações
+    ultimo_dolar_conhecido = ultimo_mes_ant["dolar"] if ultimo_mes_ant else None
     valores_por_data = {}
     for d in dias_uteis:
         data_str = d.strftime("%d/%m/%Y")
         if data_str in datas_reais:
             r = datas_reais[data_str]
+            dolar = para_float(r[7])
+            # Se dolar for None, usa o último conhecido
+            if dolar is None:
+                dolar = ultimo_dolar_conhecido
+            else:
+                ultimo_dolar_conhecido = dolar
+            cobre = para_float(r[3])
+            aluminio = para_float(r[5])
             valores_por_data[data_str] = {
-                "cobre": para_float(r[3]),
-                "aluminio": para_float(r[5]),
-                "dolar": para_float(r[7]),
-                "cobre_kg": para_float(r[9]) if len(r) > 9 else None,
-                "aluminio_kg": para_float(r[11]) if len(r) > 11 else None,
+                "cobre": cobre,
+                "aluminio": aluminio,
+                "dolar": dolar,
+                "cobre_kg": calc_kg(cobre, dolar),
+                "aluminio_kg": calc_kg(aluminio, dolar),
                 "tipo": "Real",
                 "dia_semana": r[1],
             }
