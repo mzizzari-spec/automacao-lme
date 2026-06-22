@@ -42,6 +42,7 @@
   .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
   canvas { max-height: 260px; }
   .table-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .table-wrapper > div { overflow-x: auto; }
   .table-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
   .table-title { font-size: 13px; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; }
@@ -68,14 +69,14 @@
   .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--copper); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 12px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .updated { font-size: 11px; color: var(--text-dim); }
-  @media (max-width: 900px) { .cards { grid-template-columns: repeat(3, 1fr); } header { flex-direction: column; align-items: flex-start; gap: 16px; } }
-  @media (max-width: 600px) { .cards { grid-template-columns: repeat(2, 1fr); } body { padding: 16px; } }
   .hist-section { margin-top: 32px; }
   .hist-section-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
   .hist-filtro { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
   .hist-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
   .hist-btn:hover { border-color: var(--copper); color: var(--copper); }
   .hist-btn.active { background: var(--copper); border-color: var(--copper); color: #fff; }
+  @media (max-width: 900px) { .cards { grid-template-columns: repeat(3, 1fr); } header { flex-direction: column; align-items: flex-start; gap: 16px; } }
+  @media (max-width: 600px) { .cards { grid-template-columns: repeat(2, 1fr); } body { padding: 16px; } }
 </style>
 </head>
 <body>
@@ -110,16 +111,12 @@
     <div id="table-container"><div class="state"><div class="spinner"></div></div></div>
   </div>
 </div>
-
-<!-- HISTÓRICO MENSAL -->
 <div class="hist-section">
   <div class="hist-section-title">Evolucao Historica Mensal</div>
-  <div class="hist-filtro" id="hist-filtro">
-    <div class="spinner" style="width:20px;height:20px;margin:0;"></div>
-  </div>
+  <div class="hist-filtro" id="hist-filtro"><div class="spinner" style="width:20px;height:20px;margin:0;"></div></div>
   <div class="chart-wrapper" style="margin-bottom:20px;">
     <div class="chart-header">
-      <span class="chart-title">Cobre · Aluminio · Dolar — historico</span>
+      <span class="chart-title">Cobre - Aluminio - Dolar historico</span>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:var(--copper)"></div>Cobre</div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--aluminium)"></div>Aluminio</div>
@@ -128,14 +125,11 @@
     </div>
     <canvas id="chart-hist"></canvas>
   </div>
-  <div class="table-wrapper" id="hist-container">
-    <div class="table-header">
-      <span class="table-title">Resumo mensal</span>
-    </div>
+  <div class="table-wrapper">
+    <div class="table-header"><span class="table-title">Resumo mensal</span></div>
     <div id="hist-tabela"><div class="state"><div class="spinner"></div></div></div>
   </div>
 </div>
-
 <script>
 var SHEET_ID = '10XV0A_U4LvG4Yc1a8lOjw81njnlu9lGjTHFTRGxHUHQ';
 var ABA = 'Consolidado';
@@ -167,8 +161,8 @@ function fmt(v, dec) {
 }
 
 function fmtVar(v) {
-  var n = toNum(v);
-  if (n === null) return '<span class="var-neutral">-</span>';
+  var n = typeof v === 'number' ? v : toNum(v);
+  if (n === null || n === undefined || isNaN(n)) return '<span class="var-neutral">-</span>';
   var pct = (n * 100).toFixed(2);
   var sinal = n > 0 ? '+' : '';
   var cls = n > 0 ? 'var-up' : n < 0 ? 'var-down' : 'var-neutral';
@@ -182,6 +176,11 @@ function calcMedia(arr, campo, tipo) {
     .filter(function(v) { return v !== null && v > 0; });
   if (!vals.length) return null;
   return vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
+}
+
+function varSem(atual, ant) {
+  if (atual === null || ant === null || ant === 0) return null;
+  return (atual - ant) / ant;
 }
 
 function carregarDados() {
@@ -204,7 +203,6 @@ function carregarDados() {
     })
     .catch(function(e) {
       document.getElementById('cards').innerHTML = '<div class="state" style="grid-column:1/-1">Erro ao carregar dados.</div>';
-      console.error(e);
     });
 }
 
@@ -236,15 +234,14 @@ function renderCards(dados) {
   var mR_c = calcMedia(dados,c1,'Real'), mP_c = calcMedia(dados,c1,null);
   var mR_a = calcMedia(dados,c2,'Real'), mP_a = calcMedia(dados,c2,null);
   var mR_d = calcMedia(dados,c3,'Real'), mP_d = calcMedia(dados,c3,null);
-
   document.getElementById('cards').innerHTML =
     '<div class="card-section-title">Media Real</div>' +
-    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mR_c,0) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mR_a,0) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mR_c,2) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mR_a,2) + '</div><div class="card-sub">US$/t</div></div>' +
     '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mR_d,4) + '</div><div class="card-sub">R$/US$</div></div>' +
     '<div class="card-section-title">Media Projetada</div>' +
-    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mP_c,0) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mP_a,0) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mP_c,2) + '</div><div class="card-sub">US$/t</div></div>' +
+    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mP_a,2) + '</div><div class="card-sub">US$/t</div></div>' +
     '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mP_d,4) + '</div><div class="card-sub">R$/US$</div></div>';
 }
 
@@ -257,20 +254,15 @@ function renderChart(dados) {
   var ctx = document.getElementById('chart').getContext('2d');
   chartObj = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        { label: 'Cobre', data: cobre, borderColor: '#c45e1a', backgroundColor: 'rgba(196,94,26,0.08)', borderWidth: 2, pointRadius: 3, tension: 0.3, yAxisID: 'y',
-          segment: { borderDash: function(c) { return dados[c.p1DataIndex] && dados[c.p1DataIndex]['Tipo']==='Projetado' ? [4,4] : []; } } },
-        { label: 'Aluminio', data: al, borderColor: '#2b6cb0', borderWidth: 2, pointRadius: 3, tension: 0.3, yAxisID: 'y',
-          segment: { borderDash: function(c) { return dados[c.p1DataIndex] && dados[c.p1DataIndex]['Tipo']==='Projetado' ? [4,4] : []; } } },
-        { label: 'Dolar', data: dol, borderColor: '#1a7a42', borderWidth: 2, pointRadius: 3, tension: 0.3, yAxisID: 'y2',
-          segment: { borderDash: function(c) { return dados[c.p1DataIndex] && dados[c.p1DataIndex]['Tipo']==='Projetado' ? [4,4] : []; } } }
-      ]
-    },
-    options: {
-      responsive: true,
-      interaction: { mode: 'index', intersect: false },
+    data: { labels: labels, datasets: [
+      { label: 'Cobre', data: cobre, borderColor: '#c45e1a', backgroundColor: 'rgba(196,94,26,0.08)', borderWidth: 2, pointRadius: 3, tension: 0.3, yAxisID: 'y',
+        segment: { borderDash: function(c) { return dados[c.p1DataIndex] && dados[c.p1DataIndex]['Tipo']==='Projetado' ? [4,4] : []; } } },
+      { label: 'Aluminio', data: al, borderColor: '#2b6cb0', borderWidth: 2, pointRadius: 3, tension: 0.3, yAxisID: 'y',
+        segment: { borderDash: function(c) { return dados[c.p1DataIndex] && dados[c.p1DataIndex]['Tipo']==='Projetado' ? [4,4] : []; } } },
+      { label: 'Dolar', data: dol, borderColor: '#1a7a42', borderWidth: 2, pointRadius: 3, tension: 0.3, yAxisID: 'y2',
+        segment: { borderDash: function(c) { return dados[c.p1DataIndex] && dados[c.p1DataIndex]['Tipo']==='Projetado' ? [4,4] : []; } } }
+    ]},
+    options: { responsive: true, interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false }, tooltip: { backgroundColor: '#fff', borderColor: '#e2e4ea', borderWidth: 1, titleColor: '#1a1d2e', bodyColor: '#6b7280', padding: 10 } },
       scales: {
         x: { grid: { color: '#e2e4ea' }, ticks: { color: '#6b7280', font: { size: 11 } } },
@@ -285,89 +277,82 @@ function renderTable(dados) {
   var reais = dados.filter(function(r) { return r['Tipo'] === 'Real'; });
   var c1='Cobre (US$/t)', c2='Alum\u00ednio (US$/t)', c3='D\u00f3lar (R$/US$)', c4='Cobre (R$/kg)', c5='Alum\u00ednio (R$/kg)';
   var vc1='Var. Cobre', vc2='Var. Alum\u00ednio', vc3='Var. D\u00f3lar', vc4='Var. Cobre/kg', vc5='Var. Alum\u00ednio/kg';
-
-  // Calcula médias semanais
-  var semanaAtual = [];
-  var linhasTabela = [];
-  var semanaNum = null;
-
-  dados.forEach(function(r, idx) {
-    var data = r['Data'] ? String(r['Data']) : '';
-    var partes = data.split('/');
-    var d = partes.length === 3 ? new Date(partes[2], partes[1]-1, partes[0]) : null;
-    var semana = d ? getWeekNumber(d) : null;
-
-    if (semanaNum !== null && semana !== semanaNum && semanaAtual.length > 0) {
-      linhasTabela.push({tipo: 'semana', dados: semanaAtual.slice()});
-      semanaAtual = [];
-    }
-    semanaNum = semana;
-    linhasTabela.push({tipo: 'dia', r: r});
-    semanaAtual.push(r);
-
-    // Verifica se é o último da semana
-    var proximo = dados[idx+1];
-    var proximaSemana = proximo ? (function() {
-      var pp = String(proximo['Data'] || '').split('/');
-      var dd = pp.length === 3 ? new Date(pp[2], pp[1]-1, pp[0]) : null;
-      return dd ? getWeekNumber(dd) : null;
-    })() : null;
-
-    if (proximaSemana !== semana && semanaAtual.length > 0) {
-      linhasTabela.push({tipo: 'semana', dados: semanaAtual.slice()});
-      semanaAtual = [];
-    }
-  });
+  var semanaAtual = [], linhasTabela = [], semanaNum = null;
 
   function getWeekNumber(d) {
     var onejan = new Date(d.getFullYear(), 0, 1);
     return Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
   }
 
-  function medSemana(arr, campo) {
-    var vals = arr.map(function(r) { return toNum(r[campo]); }).filter(function(v) { return v !== null; });
-    if (!vals.length) return null;
-    return vals.reduce(function(a,b){return a+b;},0)/vals.length;
-  }
-
-  // Remove duplicatas de semana
-  var linhasFinais = [];
-  var semanaAdicionadas = new Set();
-  linhasTabela.forEach(function(item) {
-    if (item.tipo === 'semana') {
-      var key = item.dados.map(function(r){return r['Data'];}).join(',');
-      if (!semanaAdicionadas.has(key)) {
-        semanaAdicionadas.add(key);
-        linhasFinais.push(item);
-      }
-    } else {
-      linhasFinais.push(item);
+  dados.forEach(function(r, idx) {
+    var partes = String(r['Data'] || '').split('/');
+    var d = partes.length === 3 ? new Date(partes[2], partes[1]-1, partes[0]) : null;
+    var semana = d ? getWeekNumber(d) : null;
+    if (semanaNum !== null && semana !== semanaNum && semanaAtual.length > 0) {
+      linhasTabela.push({tipo: 'semana', dados: semanaAtual.slice()}); semanaAtual = [];
+    }
+    semanaNum = semana;
+    linhasTabela.push({tipo: 'dia', r: r});
+    semanaAtual.push(r);
+    var proximo = dados[idx+1];
+    var proximaSemana = proximo ? (function() {
+      var pp = String(proximo['Data'] || '').split('/');
+      var dd = pp.length === 3 ? new Date(pp[2], pp[1]-1, pp[0]) : null;
+      return dd ? getWeekNumber(dd) : null;
+    })() : null;
+    if (proximaSemana !== semana && semanaAtual.length > 0) {
+      linhasTabela.push({tipo: 'semana', dados: semanaAtual.slice()}); semanaAtual = [];
     }
   });
 
+  function medSemana(arr, campo) {
+    var vals = arr.map(function(r) { return toNum(r[campo]); }).filter(function(v) { return v !== null; });
+    return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+  }
+
+  var linhasFinais = [], semanaAdicionadas = new Set();
+  linhasTabela.forEach(function(item) {
+    if (item.tipo === 'semana') {
+      var key = item.dados.map(function(r){return r['Data'];}).join(',');
+      if (!semanaAdicionadas.has(key)) { semanaAdicionadas.add(key); linhasFinais.push(item); }
+    } else { linhasFinais.push(item); }
+  });
+
+  // Pre-calcula medias de todas as semanas para calcular variacao entre semanas
+  var mediasSemanas = [];
+  linhasFinais.forEach(function(item) {
+    if (item.tipo === 'semana') {
+      mediasSemanas.push({
+        c1: medSemana(item.dados,c1), c2: medSemana(item.dados,c2),
+        c3: medSemana(item.dados,c3), c4: medSemana(item.dados,c4),
+        c5: medSemana(item.dados,c5)
+      });
+    }
+  });
+
+  var semanaIdx = 0;
   var linhas = linhasFinais.map(function(item) {
     if (item.tipo === 'dia') {
       var r = item.r;
       return '<tr>' +
-        '<td>' + (r['Data'] || '') + '</td>' +
-        '<td>' + (r['Dia da Semana'] || '') + '</td>' +
+        '<td>' + (r['Data']||'') + '</td><td>' + (r['Dia da Semana']||'') + '</td>' +
         '<td><span class="badge ' + (r['Tipo']==='Real'?'badge-real':'badge-proj') + '">' + r['Tipo'] + '</span></td>' +
-        '<td>' + fmt(r[c1],0) + '</td><td class="center">' + fmtVar(r[vc1]) + '</td>' +
-        '<td>' + fmt(r[c2],0) + '</td><td class="center">' + fmtVar(r[vc2]) + '</td>' +
+        '<td>' + fmt(r[c1],2) + '</td><td class="center">' + fmtVar(r[vc1]) + '</td>' +
+        '<td>' + fmt(r[c2],2) + '</td><td class="center">' + fmtVar(r[vc2]) + '</td>' +
         '<td>' + fmt(r[c3],4) + '</td><td class="center">' + fmtVar(r[vc3]) + '</td>' +
-        '<td>' + fmt(r[c4],4) + '</td><td class="center">' + fmtVar(r[vc4]) + '</td>' +
-        '<td>' + fmt(r[c5],4) + '</td><td class="center">' + fmtVar(r[vc5]) + '</td>' +
+        '<td>' + fmt(r[c4],2) + '</td><td class="center">' + fmtVar(r[vc4]) + '</td>' +
+        '<td>' + fmt(r[c5],2) + '</td><td class="center">' + fmtVar(r[vc5]) + '</td>' +
         '</tr>';
     } else {
-      var arr = item.dados;
-      return '<tr class="semana-row">' +
-        '<td colspan="3" style="font-size:10px;">Media semana</td>' +
-        '<td>' + fmt(medSemana(arr,c1),0) + '</td><td></td>' +
-        '<td>' + fmt(medSemana(arr,c2),0) + '</td><td></td>' +
-        '<td>' + fmt(medSemana(arr,c3),4) + '</td><td></td>' +
-        '<td>' + fmt(medSemana(arr,c4),4) + '</td><td></td>' +
-        '<td>' + fmt(medSemana(arr,c5),4) + '</td><td></td>' +
-        '</tr>';
+      var ms = mediasSemanas[semanaIdx];
+      var mp = semanaIdx > 0 ? mediasSemanas[semanaIdx - 1] : null;
+      semanaIdx++;
+      return '<tr class="semana-row"><td colspan="3">Media semana</td>' +
+        '<td>' + fmt(ms.c1,2) + '</td><td class="center">' + fmtVar(varSem(ms.c1, mp ? mp.c1 : null)) + '</td>' +
+        '<td>' + fmt(ms.c2,2) + '</td><td class="center">' + fmtVar(varSem(ms.c2, mp ? mp.c2 : null)) + '</td>' +
+        '<td>' + fmt(ms.c3,4) + '</td><td class="center">' + fmtVar(varSem(ms.c3, mp ? mp.c3 : null)) + '</td>' +
+        '<td>' + fmt(ms.c4,2) + '</td><td class="center">' + fmtVar(varSem(ms.c4, mp ? mp.c4 : null)) + '</td>' +
+        '<td>' + fmt(ms.c5,2) + '</td><td class="center">' + fmtVar(varSem(ms.c5, mp ? mp.c5 : null)) + '</td></tr>';
     }
   }).join('');
 
@@ -378,30 +363,19 @@ function renderTable(dados) {
   var mR_ak=calcMedia(dados,c5,'Real'), mP_ak=calcMedia(dados,c5,null);
 
   document.getElementById('table-container').innerHTML =
-    '<table><thead><tr>' +
-    '<th>Data</th><th>Dia</th><th>Tipo</th>' +
-    '<th>Cobre US$/t</th><th class="center">Var%</th>' +
-    '<th>Aluminio US$/t</th><th class="center">Var%</th>' +
-    '<th>Dolar R$/US$</th><th class="center">Var%</th>' +
-    '<th>Cobre R$/kg</th><th class="center">Var%</th>' +
-    '<th>Aluminio R$/kg</th><th class="center">Var%</th>' +
-    '</tr></thead><tbody>' +
-    linhas +
+    '<table><thead><tr><th>Data</th><th>Dia</th><th>Tipo</th>' +
+    '<th>Cobre US$/t</th><th class="center">Var%</th><th>Aluminio US$/t</th><th class="center">Var%</th>' +
+    '<th>Dolar R$/US$</th><th class="center">Var%</th><th>Cobre R$/kg</th><th class="center">Var%</th>' +
+    '<th>Aluminio R$/kg</th><th class="center">Var%</th></tr></thead><tbody>' + linhas +
     '<tr class="media-row media-real-row"><td colspan="3">Media Real</td>' +
-    '<td>' + fmt(mR_c,0) + '</td><td></td><td>' + fmt(mR_a,0) + '</td><td></td>' +
-    '<td>' + fmt(mR_d,4) + '</td><td></td><td>' + fmt(mR_ck,4) + '</td><td></td>' +
-    '<td>' + fmt(mR_ak,4) + '</td><td></td></tr>' +
+    '<td>' + fmt(mR_c,2) + '</td><td></td><td>' + fmt(mR_a,2) + '</td><td></td>' +
+    '<td>' + fmt(mR_d,4) + '</td><td></td><td>' + fmt(mR_ck,2) + '</td><td></td><td>' + fmt(mR_ak,2) + '</td><td></td></tr>' +
     '<tr class="media-row media-proj-row"><td colspan="3">Media Projetada</td>' +
-    '<td>' + fmt(mP_c,0) + '</td><td></td><td>' + fmt(mP_a,0) + '</td><td></td>' +
-    '<td>' + fmt(mP_d,4) + '</td><td></td><td>' + fmt(mP_ck,4) + '</td><td></td>' +
-    '<td>' + fmt(mP_ak,4) + '</td><td></td></tr>' +
+    '<td>' + fmt(mP_c,2) + '</td><td></td><td>' + fmt(mP_a,2) + '</td><td></td>' +
+    '<td>' + fmt(mP_d,4) + '</td><td></td><td>' + fmt(mP_ck,2) + '</td><td></td><td>' + fmt(mP_ak,2) + '</td><td></td></tr>' +
     '</tbody></table>';
-
   document.getElementById('total-dias').textContent = reais.length + ' dias reais - ' + (dados.length - reais.length) + ' projetados';
 }
-
-carregarDados();
-carregarHistorico();
 
 function carregarHistorico() {
   fetch(URL_HIST)
@@ -415,67 +389,63 @@ function carregarHistorico() {
         var obj = {};
         cols.forEach(function(col, i) { obj[col] = row.c[i] ? row.c[i].v : null; });
         return obj;
-      }).filter(function(r) { return r['Mês'] || r['Mes']; });
+      }).filter(function(r) { return r['M\u00eas'] || r['Mes']; });
       popularFiltroHistorico();
     })
     .catch(function(e) {
-      console.error('Erro historico:', e);
-      document.getElementById('hist-container').innerHTML = '<div class="state">Erro ao carregar historico.</div>';
+      document.getElementById('hist-tabela').innerHTML = '<div class="state">Erro ao carregar historico.</div>';
     });
 }
 
 function popularFiltroHistorico() {
   var anos = new Set();
   dadosHistorico.forEach(function(r) {
-    var m = r['Mês'] || r['Mes'] || '';
-    var partes = m.split('/');
-    if (partes.length === 2) anos.add(partes[1]);
+    var m = r['M\u00eas'] || r['Mes'] || '';
+    var p = m.split('/');
+    if (p.length === 2) anos.add(p[1]);
   });
   var anosArr = Array.from(anos).sort();
-  var btns = '<button onclick="renderHistorico('Total')" class="hist-btn active" id="btn-Total">Total</button>';
-  anosArr.forEach(function(ano) {
-    btns += '<button onclick="renderHistorico('' + ano + '')" class="hist-btn" id="btn-' + ano + '">' + ano + '</button>';
-  });
+  var todos = ['Total'].concat(anosArr);
+  var btns = todos.map(function(f) {
+    return '<button class="hist-btn" data-filtro="' + f + '">' + f + '</button>';
+  }).join('');
   document.getElementById('hist-filtro').innerHTML = btns;
+  document.querySelectorAll('.hist-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.hist-btn').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      renderHistorico(this.getAttribute('data-filtro'));
+    });
+  });
+  document.querySelector('.hist-btn').classList.add('active');
+  renderHistorico('Total');
 }
 
 function renderHistorico(filtro) {
-  // Update active button
-  document.querySelectorAll('.hist-btn').forEach(function(b) { b.classList.remove('active'); });
-  var btn = document.getElementById('btn-' + filtro);
-  if (btn) btn.classList.add('active');
-
   var dados = dadosHistorico.filter(function(r) {
     if (filtro === 'Total') return true;
-    var m = r['Mês'] || r['Mes'] || '';
+    var m = r['M\u00eas'] || r['Mes'] || '';
     return m.indexOf(filtro) !== -1;
   });
-
   renderChartHistorico(dados);
   renderTabelaHistorico(dados);
 }
 
 function renderChartHistorico(dados) {
-  var labels = dados.map(function(r) { return r['Mês'] || r['Mes'] || ''; });
+  var labels = dados.map(function(r) { return r['M\u00eas'] || r['Mes'] || ''; });
   var cobre = dados.map(function(r) { return toNum(r['Cobre (US$/t)']); });
-  var al = dados.map(function(r) { return toNum(r['Alumínio (US$/t)']); });
-  var dol = dados.map(function(r) { return toNum(r['Dólar (R$/US$)']); });
-
+  var al = dados.map(function(r) { return toNum(r['Alum\u00ednio (US$/t)']); });
+  var dol = dados.map(function(r) { return toNum(r['D\u00f3lar']); });
   if (chartHistObj) chartHistObj.destroy();
   var ctx = document.getElementById('chart-hist').getContext('2d');
   chartHistObj = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        { label: 'Cobre', data: cobre, borderColor: '#c45e1a', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y' },
-        { label: 'Aluminio', data: al, borderColor: '#2b6cb0', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y' },
-        { label: 'Dolar', data: dol, borderColor: '#1a7a42', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y2' }
-      ]
-    },
-    options: {
-      responsive: true,
-      interaction: { mode: 'index', intersect: false },
+    data: { labels: labels, datasets: [
+      { label: 'Cobre', data: cobre, borderColor: '#c45e1a', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y' },
+      { label: 'Aluminio', data: al, borderColor: '#2b6cb0', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y' },
+      { label: 'Dolar', data: dol, borderColor: '#1a7a42', borderWidth: 2, pointRadius: 2, tension: 0.3, yAxisID: 'y2' }
+    ]},
+    options: { responsive: true, interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false }, tooltip: { backgroundColor: '#fff', borderColor: '#e2e4ea', borderWidth: 1, titleColor: '#1a1d2e', bodyColor: '#6b7280', padding: 10 } },
       scales: {
         x: { grid: { color: '#e2e4ea' }, ticks: { color: '#6b7280', font: { size: 10 }, maxRotation: 45 } },
@@ -487,13 +457,12 @@ function renderChartHistorico(dados) {
 }
 
 function renderTabelaHistorico(dados) {
-  var c1='Cobre (US$/t)', c2='Alumínio (US$/t)', c3='Dólar (R$/US$)', c4='Cobre (R$/kg)', c5='Alumínio (R$/kg)';
-  var vc1='Var. Cobre', vc2='Var. Alumínio', vc3='Var. Dólar', vc4='Var. Cobre/kg', vc5='Var. Alumínio/kg';
-
+  var c1='Cobre (US$/t)', c2='Alum\u00ednio (US$/t)', c3='D\u00f3lar', c4='Cobre (R$/kg)', c5='Alum\u00ednio (R$/kg)';
+  var vc1='Var. Cobre', vc2='Var. Alum\u00ednio', vc3='Var. D\u00f3lar', vc4='Var. Cobre/kg', vc5='Var. Alum\u00ednio/kg';
   var linhas = dados.map(function(r) {
-    var mes = r['Mês'] || r['Mes'] || '';
+    var mes = r['M\u00eas'] || r['Mes'] || '';
     return '<tr>' +
-      '<td style="font-family:Inter,sans-serif;font-size:12px;">' + mes + '</td>' +
+      '<td style="font-family:Inter,sans-serif;">' + mes + '</td>' +
       '<td>' + fmt(r[c3],4) + '</td><td class="center">' + fmtVar(r[vc3]) + '</td>' +
       '<td>' + fmt(r[c1],2) + '</td><td class="center">' + fmtVar(r[vc1]) + '</td>' +
       '<td>' + fmt(r[c2],2) + '</td><td class="center">' + fmtVar(r[vc2]) + '</td>' +
@@ -501,10 +470,8 @@ function renderTabelaHistorico(dados) {
       '<td>' + fmt(r[c5],2) + '</td><td class="center">' + fmtVar(r[vc5]) + '</td>' +
       '</tr>';
   }).join('');
-
   document.getElementById('hist-tabela').innerHTML =
-    '<table><thead><tr>' +
-    '<th>Mes</th>' +
+    '<table><thead><tr><th>Mes</th>' +
     '<th>Dolar R$/US$</th><th class="center">Var%</th>' +
     '<th>Cobre US$/t</th><th class="center">Var%</th>' +
     '<th>Aluminio US$/t</th><th class="center">Var%</th>' +
@@ -512,6 +479,9 @@ function renderTabelaHistorico(dados) {
     '<th>Aluminio R$/kg</th><th class="center">Var%</th>' +
     '</tr></thead><tbody>' + linhas + '</tbody></table>';
 }
+
+carregarDados();
+carregarHistorico();
 </script>
 </body>
 </html>
