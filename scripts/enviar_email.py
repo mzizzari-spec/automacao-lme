@@ -87,7 +87,7 @@ def obter_dados_mes_atual(client):
     if mes_ant == 0:
         mes_ant = 12
         ano_ant -= 1
-    nome_aba_ant = f"{MESES_PT[mes_ant-1]}/{ano_ant}"
+    nome_mes_ant = f"{MESES_PT[mes_ant-1]}/{ano_ant}"
 
     planilha = client.open_by_key(GOOGLE_SHEET_ID)
     try:
@@ -97,18 +97,30 @@ def obter_dados_mes_atual(client):
 
     dados = aba.get_all_values()
 
-    # Busca médias do mês anterior
+    # Busca médias do mês anterior na aba Historico
+    # O Historico tem: Mes | Dolar | Var.Dolar | Cobre | Var.Cobre | Aluminio | Var.Al | CobreKg | Var.CobreKg | AlKg | Var.AlKg
+    # Precisamos converter para o formato da aba mensal:
+    # col3=Cobre, col5=Aluminio, col7=Dolar, col9=CobreKg, col11=AlKg
     media_real_ant = None
-    media_proj_ant = None
     try:
-        aba_ant = planilha.worksheet(nome_aba_ant)
-        dados_ant = aba_ant.get_all_values()
-        media_real_ant = next((l for l in dados_ant if len(l) > 0 and l[0] == "Média Real"), None)
-        media_proj_ant = next((l for l in dados_ant if len(l) > 0 and l[0] == "Média Projetada"), None)
-    except:
-        pass
+        hist = planilha.worksheet("Historico")
+        dados_hist = hist.get_all_values()
+        # Busca linha do mês anterior
+        linha_ant = next((l for l in dados_hist if len(l) > 0 and l[0] == nome_mes_ant), None)
+        if linha_ant:
+            # Historico: [Mes, Dolar, Var.Dolar, Cobre, Var.Cobre, Aluminio, Var.Al, CobreKg, Var.CobreKg, AlKg, Var.AlKg]
+            # Monta lista no formato da aba mensal para usar col3,5,7,9,11
+            media_real_ant = [''] * 13
+            media_real_ant[3] = linha_ant[3]   # Cobre
+            media_real_ant[5] = linha_ant[5]   # Aluminio
+            media_real_ant[7] = linha_ant[1]   # Dolar
+            media_real_ant[9] = linha_ant[7]   # Cobre R$/kg
+            media_real_ant[11] = linha_ant[9]  # Aluminio R$/kg
+            print(f"✅ Médias de {nome_mes_ant} encontradas no Historico")
+    except Exception as e:
+        print(f"⚠️  Historico não encontrado: {e}")
 
-    return dados, nome_aba, media_real_ant, media_proj_ant
+    return dados, nome_aba, media_real_ant, media_real_ant  # usa mesma ref para real e proj
 
 
 def gerar_html_email(dados, nome_mes, media_real_ant=None, media_proj_ant=None):
@@ -139,7 +151,6 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None, media_proj_ant=None):
         def var_r(col):
             atual = to_float(media_real[col]) if len(media_real) > col else None
             ant = to_float(media_real_ant[col]) if media_real_ant and len(media_real_ant) > col else None
-            print(f"DEBUG var_r col={col} atual={atual} ant={ant}")
             return calc_var(atual, ant)
         cards_real = f"""
         <tr>
@@ -239,9 +250,12 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None, media_proj_ant=None):
 <body style="margin:0;padding:0;background:#f5f6f8;font-family:Inter,Arial,sans-serif;">
 <div style="max-width:960px;margin:0 auto;padding:28px 16px;">
 
-  <div style="margin-bottom:20px;">
-    <h1 style="font-size:20px;font-weight:700;color:#1a1d2e;margin:0;">LME <span style="color:#c45e1a;">Metais</span></h1>
-    <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Cotações {nome_mes} — {hoje.strftime('%d/%m/%Y %H:%M')}</p>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #e2e4ea;">
+    <div>
+      <h1 style="font-size:20px;font-weight:700;color:#1a1d2e;margin:0;">LME <span style="color:#1a6080;">Metais</span></h1>
+      <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Cotações {nome_mes} — {hoje.strftime('%d/%m/%Y %H:%M')}</p>
+    </div>
+    <img src="https://mzizzari-spec.github.io/automacao-lme/GMC-logo.png" alt="Grupo Melo Cordeiro" style="height:48px;object-fit:contain;">
   </div>
 
   <table width="100%" cellpadding="0" cellspacing="8" style="margin-bottom:20px;">
