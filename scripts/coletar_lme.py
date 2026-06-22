@@ -319,7 +319,12 @@ def recalcular_aba(planilha, aba, ano, mes):
                      proximo_dia_util.isocalendar()[1] != num_semana)
 
         if fim_semana and semana_atual:
-            media_linha = calcular_media_semana(semana_atual)
+            # Busca média da semana anterior nas linhas já calculadas
+            media_anterior = next(
+                (l for l in reversed(todas_linhas) if l and l[0] == "Média Semana"),
+                None
+            )
+            media_linha = calcular_media_semana(semana_atual, media_anterior)
             todas_linhas.append(media_linha)
             semana_atual = []
 
@@ -344,13 +349,24 @@ def recalcular_aba(planilha, aba, ano, mes):
     return [l for l in todas_linhas[1:] if len(l) > 2 and isinstance(l[2], str) and l[2] in ("Real", "Projetado")]
 
 
-def calcular_media_semana(linhas):
-    """Calcula média de uma semana."""
+def calcular_media_semana(linhas, media_semana_anterior=None):
+    """Calcula média de uma semana com variação em relação à semana anterior."""
     def med(col):
         vals = [para_float(l[col]) for l in linhas if len(l) > col and para_float(l[col]) is not None]
         return round(sum(vals) / len(vals), 4) if vals else None
 
-    return ["Média Semana", "", "", med(3), med(4), med(5), med(6), med(7), med(8), med(9), med(10), med(11), med(12)]
+    m3 = med(3); m5 = med(5); m7 = med(7); m9 = med(9); m11 = med(11)
+
+    if media_semana_anterior:
+        var3 = calc_variacao(m3, para_float(media_semana_anterior[3]))
+        var5 = calc_variacao(m5, para_float(media_semana_anterior[5]))
+        var7 = calc_variacao(m7, para_float(media_semana_anterior[7]))
+        var9 = calc_variacao(m9, para_float(media_semana_anterior[9]))
+        var11 = calc_variacao(m11, para_float(media_semana_anterior[11]))
+    else:
+        var3 = var5 = var7 = var9 = var11 = None
+
+    return ["Média Semana", "", "", m3, var3, m5, var5, m7, var7, m9, var9, m11, var11]
 
 
 def calcular_media_mes(linhas, label):
