@@ -254,7 +254,7 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #e2e4ea;">
     <div>
       <h1 style="font-size:20px;font-weight:700;color:#1a1d2e;margin:0;">LME <span style="color:#1a6080;">Metais</span></h1>
-      <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Cotações {nome_mes} — {hoje.strftime('%d/%m/%Y %H:%M')}</p>
+      <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Cotações {nome_mes} - {hoje.strftime('%d/%m/%Y %H:%M')}</p>
     </div>
     <img src="https://mzizzari-spec.github.io/automacao-lme/GMC-logo.png" alt="Grupo Melo Cordeiro" height="48" width="160" style="height:48px;width:160px;object-fit:contain;display:block;">
   </div>
@@ -268,7 +268,7 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
 
   <div style="background:#fff;border:1px solid #e2e4ea;border-radius:10px;overflow:hidden;margin-bottom:20px;">
     <div style="padding:12px 16px;border-bottom:1px solid #e2e4ea;display:flex;justify-content:space-between;">
-      <span style="font-size:13px;font-weight:600;">Cotações diárias — {nome_mes}</span>
+      <span style="font-size:13px;font-weight:600;">Cotações diárias - {nome_mes}</span>
       <span style="font-size:11px;color:#6b7280;">{len(reais)} reais · {len(projetados)} projetados</span>
     </div>
     <table width="100%" cellpadding="0" cellspacing="0">
