@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GMC - LME Metais</title>
+<title>LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -445,7 +445,14 @@ function renderTable(dados) {
   // Busca media do mes anterior no historico
   var mesAtual = document.getElementById('month-select').value;
   var idxMesAtual = dadosHistorico.findIndex(function(r) { return (r['Mês'] || r['Mes']) === mesAtual; });
-  var histAnt = idxMesAtual > 0 ? dadosHistorico[idxMesAtual - 1] : null;
+  // Mes anterior = indice anterior, mas excluindo o mes atual (que pode estar no historico)
+  var histAnt = null;
+  if (idxMesAtual > 0) {
+    histAnt = dadosHistorico[idxMesAtual - 1];
+  } else if (idxMesAtual === -1 && dadosHistorico.length > 0) {
+    // Mes atual nao esta no historico ainda, pega o ultimo
+    histAnt = dadosHistorico[dadosHistorico.length - 1];
+  }
 
   function vMes(atual, histAnterior, campo) {
     if (!histAnterior) return null;
