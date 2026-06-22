@@ -264,6 +264,8 @@ def recalcular_aba(planilha, aba, ano, mes):
         data_str = d.strftime("%d/%m/%Y")
         if data_str in datas_reais:
             r = datas_reais[data_str]
+            if data_str == "04/06/2026":
+                print("DEBUG dia04:", r)
             dolar = para_float(r[7])
             # Se dolar for None, usa o último conhecido
             if dolar is None:
