@@ -23,7 +23,7 @@
   .header-left h1 span { color: #1a6080; }
   .header-left p { margin-top: 4px; font-size: 13px; color: var(--text-dim); }
   .header-logo { display: flex; justify-content: center; align-items: center; }
-  .header-logo img { height: 100px; object-fit: contain; }
+  .header-logo img { height: 52px; object-fit: contain; }
   .month-selector { display: flex; align-items: center; gap: 8px; }
   .month-selector label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
   .month-selector select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; cursor: pointer; outline: none; }
@@ -506,6 +506,8 @@ function carregarHistorico() {
         return obj;
       }).filter(function(r) { return r['M\u00eas'] || r['Mes']; });
       popularFiltroHistorico();
+      // Refaz a tabela do mes atual agora que o historico esta disponivel
+      filtrarMes();
     })
     .catch(function(e) {
       document.getElementById('hist-tabela').innerHTML = '<div class="state">Erro ao carregar historico.</div>';
