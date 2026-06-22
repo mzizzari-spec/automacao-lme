@@ -295,6 +295,17 @@ def recalcular_aba(planilha, aba, ano, mes):
                 "tipo": "Projetado",
                 "dia_semana": dias_semana_nomes[d.weekday()],
             }
+        elif d < hoje:
+            # Dia passado sem dados - preserva como linha vazia
+            valores_por_data[data_str] = {
+                "cobre": None,
+                "aluminio": None,
+                "dolar": None,
+                "cobre_kg": None,
+                "aluminio_kg": None,
+                "tipo": "Real",
+                "dia_semana": dias_semana_nomes[d.weekday()],
+            }
 
     # Monta linhas com variações e médias semanais
     todas_linhas = [CABECALHO]
