@@ -1,7 +1,7 @@
 """
 Script: enviar_email.py
 Função: Gera tabela HTML com dados do mês atual e envia por e-mail
-Roda: Todo dia às 7h30 via GitHub Actions
+Roda: Todo dia às 7h via GitHub Actions
 """
 
 import os
@@ -36,38 +36,44 @@ def conectar_google_sheets():
     return gspread.authorize(creds)
 
 
-def fmt(v, dec=2):
+def to_float(v):
     if v is None or v == "":
-        return "-"
+        return None
     try:
         s = str(v).strip()
         if "," in s and "." in s:
             s = s.replace(".", "").replace(",", ".")
         elif "," in s:
             s = s.replace(",", ".")
-        num = float(s)
-        formatted = f"{num:,.{dec}f}"
-        return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+        return float(s)
     except:
+        return None
+
+
+def fmt(v, dec=2):
+    n = to_float(v)
+    if n is None:
         return "-"
+    formatted = f"{n:,.{dec}f}"
+    return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def fmt_var(v):
-    """Formata variação percentual com cor."""
-    if v is None or v == "":
+    n = to_float(v)
+    if n is None:
         return "-"
-    try:
-        s = str(v).strip()
-        if "," in s and "." in s:
-            s = s.replace(".", "").replace(",", ".")
-        elif "," in s:
-            s = s.replace(",", ".")
-        num = float(s) * 100
-        sinal = "+" if num > 0 else ""
-        cor = "#15803d" if num > 0 else "#dc2626" if num < 0 else "#6b7280"
-        return f'<span style="color:{cor};font-size:10px;">{sinal}{num:.2f}%</span>'
-    except:
-        return "-"
+    num = n * 100
+    sinal = "+" if num > 0 else ""
+    cor = "#15803d" if num > 0 else "#dc2626" if num < 0 else "#6b7280"
+    return f'<span style="color:{cor};font-size:10px;">{sinal}{num:.2f}%</span>'
+
+
+def calc_var(atual, anterior):
+    a = to_float(atual)
+    b = to_float(anterior)
+    if a is None or b is None or b == 0:
+        return None
+    return (a - b) / b
 
 
 def obter_dados_mes_atual(client):
@@ -85,11 +91,13 @@ def gerar_html_email(dados, nome_mes):
     hoje = datetime.now()
 
     linhas_dias = [l for l in dados[1:] if len(l) > 2 and l[2] in ("Real", "Projetado")]
-    linhas_semana = [l for l in dados[1:] if len(l) > 2 and l[2] == "" and l[0] == "Média Semana"]
     media_real = next((l for l in dados if len(l) > 0 and l[0] == "Média Real"), None)
     media_proj = next((l for l in dados if len(l) > 0 and l[0] == "Média Projetada"), None)
     reais = [l for l in linhas_dias if l[2] == "Real"]
     projetados = [l for l in linhas_dias if l[2] == "Projetado"]
+
+    # Coleta todas as linhas de média semana para calcular variação entre semanas
+    semanas = [l for l in dados[1:] if len(l) > 0 and l[0] == "Média Semana"]
 
     def card(label, val, var, cor, unidade, dec=2, width="20%"):
         return f"""
@@ -101,7 +109,6 @@ def gerar_html_email(dados, nome_mes):
           </div>
         </td>"""
 
-    # Cards médias
     cards_real = ""
     cards_proj = ""
     if media_real and len(media_real) > 12:
@@ -123,15 +130,13 @@ def gerar_html_email(dados, nome_mes):
           {card("Alumínio R$/kg Proj.", media_proj[11], media_proj[12], "#2b6cb0", "R$/kg", width="20%")}
         </tr>"""
 
-    # Linhas da tabela
+    # Gera linhas da tabela
     linhas_html = ""
     semana_idx = 0
-    semanas = [l for l in dados[1:] if len(l) > 0 and l[0] == "Média Semana"]
 
     for l in dados[1:]:
         if not l or len(l) < 3:
             continue
-
         tipo = l[2] if len(l) > 2 else ""
 
         if tipo in ("Real", "Projetado"):
@@ -142,12 +147,12 @@ def gerar_html_email(dados, nome_mes):
                 badge = '<span style="background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;">Proj.</span>'
                 bg = "#f8faff"
 
-            def td(col, dec=2):
-                val = l[col] if len(l) > col else ""
+            def td(col, dec=2, linha=l):
+                val = linha[col] if len(linha) > col else ""
                 return f'<td style="padding:7px 10px;font-size:11px;font-family:monospace;">{fmt(val, dec)}</td>'
 
-            def td_var(col):
-                val = l[col] if len(l) > col else ""
+            def td_var(col, linha=l):
+                val = linha[col] if len(linha) > col else ""
                 return f'<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(val)}</td>'
 
             linhas_html += f"""
@@ -163,21 +168,30 @@ def gerar_html_email(dados, nome_mes):
             </tr>"""
 
         elif l[0] == "Média Semana":
-            def td_med(col, dec=2):
-                val = l[col] if len(l) > col else ""
+            # Calcula variação em relação à semana anterior
+            sem_ant = semanas[semana_idx - 1] if semana_idx > 0 else None
+
+            def td_sem(col, dec=2, linha=l):
+                val = linha[col] if len(linha) > col else ""
                 return f'<td style="padding:6px 10px;font-size:11px;font-family:monospace;color:#6b7280;">{fmt(val, dec)}</td>'
+
+            def td_sem_var(col, linha=l, ant=sem_ant):
+                val = linha[col] if len(linha) > col else None
+                val_ant = ant[col] if ant and len(ant) > col else None
+                v = calc_var(val, val_ant)
+                return f'<td style="padding:6px 10px;font-size:10px;text-align:center;">{fmt_var(v)}</td>'
 
             linhas_html += f"""
             <tr style="background:#f8f9fa;border-bottom:2px solid #e2e4ea;">
               <td colspan="3" style="padding:6px 10px;font-size:10px;color:#9aa0b4;font-style:italic;">Média da semana</td>
-              {td_med(3, 0)}<td></td>
-              {td_med(5, 0)}<td></td>
-              {td_med(7, 4)}<td></td>
-              {td_med(9, 2)}<td></td>
-              {td_med(11, 2)}<td></td>
+              {td_sem(3, 0)}{td_sem_var(3)}
+              {td_sem(5, 0)}{td_sem_var(5)}
+              {td_sem(7, 4)}{td_sem_var(7)}
+              {td_sem(9, 2)}{td_sem_var(9)}
+              {td_sem(11, 2)}{td_sem_var(11)}
             </tr>"""
+            semana_idx += 1
 
-    # Linha média real e projetada na tabela
     def td_media(linha, col, dec=2):
         val = linha[col] if linha and len(linha) > col else ""
         return f'<td style="padding:7px 10px;font-size:11px;font-weight:600;font-family:monospace;">{fmt(val, dec)}</td>'
@@ -198,9 +212,9 @@ def gerar_html_email(dados, nome_mes):
   </div>
 
   <table width="100%" cellpadding="0" cellspacing="8" style="margin-bottom:20px;">
-    <tr><td colspan="3" style="padding:4px 0 8px;font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">Média Real</td></tr>
+    <tr><td colspan="5" style="padding:4px 0 8px;font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">Média Real</td></tr>
     {cards_real}
-    <tr><td colspan="3" style="padding:12px 0 8px;font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">Média Projetada</td></tr>
+    <tr><td colspan="5" style="padding:12px 0 8px;font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">Média Projetada</td></tr>
     {cards_proj}
   </table>
 
@@ -269,12 +283,13 @@ def enviar_email(html, nome_mes):
     msg = MIMEMultipart('alternative')
     msg['Subject'] = assunto
     msg['From'] = GMAIL_USER
-    msg['To'] = ", ".join(DESTINATARIOS)
+    msg['To'] = GMAIL_USER
+    msg['Bcc'] = ", ".join(DESTINATARIOS)
     msg.attach(MIMEText(html, 'html', 'utf-8'))
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
         server.login(GMAIL_USER, GMAIL_PASSWORD)
         server.sendmail(GMAIL_USER, DESTINATARIOS, msg.as_string())
-    print(f"✅ E-mail enviado para: {', '.join(DESTINATARIOS)}")
+    print(f"✅ E-mail enviado!")
 
 
 def main():
