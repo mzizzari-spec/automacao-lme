@@ -164,9 +164,9 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
         </tr>"""
     if media_proj and len(media_proj) > 12:
         def var_p(col):
-            atual = to_float(media_proj[col]) if len(media_proj) > col else None
-            ant = to_float(media_proj_ant[col]) if media_proj_ant and len(media_proj_ant) > col else None
-            return calc_var(atual, ant)
+            proj = to_float(media_proj[col]) if len(media_proj) > col else None
+            real = to_float(media_real[col]) if media_real and len(media_real) > col else None
+            return calc_var(proj, real)
         cards_proj = f"""
         <tr>
           {card("Cobre Proj.", media_proj[3], var_p(3), "#c45e1a", "US$/t", width="20%")}
