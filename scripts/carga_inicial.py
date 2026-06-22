@@ -93,7 +93,7 @@ def para_float(valor):
     except: return None
 
 def calc_kg(usd_t, dolar):
-    if usd_t and dolar: return round((usd_t * dolar) / 1000, 2)
+    if usd_t and dolar: return round((usd_t * dolar) / 1000, 4)
     return None
 
 def calc_variacao(atual, anterior):
@@ -215,7 +215,14 @@ def processar_mes(planilha, ano, mes, dados_reais):
             def med(col):
                 vals = [para_float(l[col]) for l in semana_atual if len(l) > col and para_float(l[col]) is not None]
                 return round(sum(vals)/len(vals), 4) if vals else None
-            todas_linhas.append(["Média Semana","","",med(3),med(4),med(5),med(6),med(7),med(8),med(9),med(10),med(11),med(12)])
+            m3=med(3); m5=med(5); m7=med(7); m9=med(9); m11=med(11)
+            media_ant = next((l for l in reversed(todas_linhas) if l and l[0] == "Média Semana"), None)
+            var3 = calc_variacao(m3, para_float(media_ant[3])) if media_ant else None
+            var5 = calc_variacao(m5, para_float(media_ant[5])) if media_ant else None
+            var7 = calc_variacao(m7, para_float(media_ant[7])) if media_ant else None
+            var9 = calc_variacao(m9, para_float(media_ant[9])) if media_ant else None
+            var11 = calc_variacao(m11, para_float(media_ant[11])) if media_ant else None
+            todas_linhas.append(["Média Semana","","",m3,var3,m5,var5,m7,var7,m9,var9,m11,var11])
             semana_atual = []
 
         valor_anterior = {"cobre": cobre, "aluminio": aluminio, "dolar": dolar}
@@ -234,7 +241,7 @@ def processar_mes(planilha, ano, mes, dados_reais):
 
     aba.update(values=todas_linhas, range_name="A1")
     print(f"  ✅ '{nome}': {len(reais)} reais + {len(todos)-len(reais)} projetados")
-    return [l for l in todas_linhas[1:] if len(l) > 2 and isinstance(l[2], str) and l[2] in ("Real","Projetado")], nome
+    return [l for l in todas_linhas[1:] if isinstance(l[2], str) and l[2] in ("Real","Projetado")], nome
 
 def atualizar_consolidado(planilha, todos_os_dados):
     try:
