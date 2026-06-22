@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GMC - LME Metais</title>
+<title>LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -23,7 +23,7 @@
   .header-left h1 span { color: #1a6080; }
   .header-left p { margin-top: 4px; font-size: 13px; color: var(--text-dim); }
   .header-logo { display: flex; justify-content: center; align-items: center; }
-  .header-logo img { height: 100px; object-fit: contain; }
+  .header-logo img { height: 52px; object-fit: contain; }
   .month-selector { display: flex; align-items: center; gap: 8px; }
   .month-selector label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
   .month-selector select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; cursor: pointer; outline: none; }
@@ -143,6 +143,7 @@ var URL_SHEETS = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/t
 var URL_HIST = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(ABA_HIST);
 var todosOsDados = [];
 var dadosHistorico = [];
+var mediasMesAnterior = {real: null, proj: null};
 var chartObj = null;
 var chartHistObj = null;
 
@@ -186,6 +187,36 @@ function calcMedia(arr, campo, tipo) {
 function varSem(atual, ant) {
   if (atual === null || ant === null || ant === 0) return null;
   return (atual - ant) / ant;
+}
+
+function getMesAnterior() {
+  var agora = new Date();
+  var mes = agora.getMonth(); // 0-based
+  var ano = agora.getFullYear();
+  if (mes === 0) { mes = 11; ano--; } else { mes--; }
+  var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return meses[mes] + '/' + ano;
+}
+
+function carregarMesAnterior() {
+  var mesAnt = getMesAnterior();
+  var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(mesAnt);
+  fetch(url)
+    .then(function(resp) { return resp.text(); })
+    .then(function(text) {
+      var match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+      var json = JSON.parse(match[1]);
+      var rows = json.table.rows;
+      var cols = json.table.cols.map(function(c) { return c.label; });
+      var dadosAnt = rows.map(function(row) {
+        var obj = {};
+        cols.forEach(function(col, i) { obj[col] = row.c[i] ? row.c[i].v : null; });
+        return obj;
+      });
+      mediasMesAnterior.real = dadosAnt.find(function(r) { return r['Data'] === 'Média Real' || r['Tipo'] === 'Média Real'; }) || null;
+      mediasMesAnterior.proj = dadosAnt.find(function(r) { return r['Data'] === 'Média Projetada' || r['Tipo'] === 'Média Projetada'; }) || null;
+    })
+    .catch(function(e) { console.log('Mes anterior nao encontrado'); });
 }
 
 function carregarDados() {
@@ -234,6 +265,32 @@ function filtrarMes() {
   renderTable(dados);
 }
 
+function varMes(atual, campo) {
+  if (!dadosHistorico || dadosHistorico.length < 2) return null;
+  var mesAtual = dadosHistorico[dadosHistorico.length - 1];
+  var mesAnt = dadosHistorico[dadosHistorico.length - 2];
+  if (!mesAtual || !mesAnt) return null;
+  var a = toNum(mesAtual[campo]);
+  var b = toNum(mesAnt[campo]);
+  if (a === null || b === null || b === 0) return null;
+  return (a - b) / b;
+}
+
+function cardHtml(cls, label, valor, dec, unidade, varPct) {
+  var varHtml = '';
+  if (varPct !== null && varPct !== undefined) {
+    var pct = (varPct * 100).toFixed(2);
+    var sinal = varPct > 0 ? '+' : '';
+    var cor = varPct > 0 ? 'var(--up)' : varPct < 0 ? 'var(--down)' : 'var(--text-dim)';
+    varHtml = '<div style="font-size:10px;color:' + cor + ';margin-top:3px;">' + sinal + pct + '%</div>';
+  }
+  return '<div class="card ' + cls + '">' +
+    '<div class="card-label">' + label + '</div>' +
+    '<div class="card-value">' + fmt(valor, dec) + '</div>' +
+    '<div class="card-sub">' + unidade + varHtml + '</div>' +
+    '</div>';
+}
+
 function renderCards(dados) {
   var c1 = 'Cobre (US$/t)', c2 = 'Alum\u00ednio (US$/t)', c3 = 'D\u00f3lar (R$/US$)', c4 = 'Cobre (R$/kg)', c5 = 'Alum\u00ednio (R$/kg)';
   var mR_c = calcMedia(dados,c1,'Real'), mP_c = calcMedia(dados,c1,null);
@@ -241,19 +298,31 @@ function renderCards(dados) {
   var mR_d = calcMedia(dados,c3,'Real'), mP_d = calcMedia(dados,c3,null);
   var mR_ck = calcMedia(dados,c4,'Real'), mP_ck = calcMedia(dados,c4,null);
   var mR_ak = calcMedia(dados,c5,'Real'), mP_ak = calcMedia(dados,c5,null);
+
+  var vR_c = varMes(mR_c, 'Cobre (US$/t)');
+  var vR_a = varMes(mR_a, 'Alum\u00ednio (US$/t)');
+  var vR_d = varMes(mR_d, 'D\u00f3lar');
+  var vR_ck = varMes(mR_ck, 'Cobre (R$/kg)');
+  var vR_ak = varMes(mR_ak, 'Alum\u00ednio (R$/kg)');
+  var vP_c = varMes(mP_c, 'Cobre (US$/t)');
+  var vP_a = varMes(mP_a, 'Alum\u00ednio (US$/t)');
+  var vP_d = varMes(mP_d, 'D\u00f3lar');
+  var vP_ck = varMes(mP_ck, 'Cobre (R$/kg)');
+  var vP_ak = varMes(mP_ak, 'Alum\u00ednio (R$/kg)');
+
   document.getElementById('cards').innerHTML =
     '<div class="card-section-title">Media Real</div>' +
-    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mR_c,2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mR_a,2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mR_d,4) + '</div><div class="card-sub">R$/US$</div></div>' +
-    '<div class="card copper"><div class="card-label">Cobre R$/kg</div><div class="card-value">' + fmt(mR_ck,2) + '</div><div class="card-sub">R$/kg</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio R$/kg</div><div class="card-value">' + fmt(mR_ak,2) + '</div><div class="card-sub">R$/kg</div></div>' +
+    cardHtml('copper', 'Cobre', mR_c, 2, 'US$/t', vR_c) +
+    cardHtml('aluminium', 'Aluminio', mR_a, 2, 'US$/t', vR_a) +
+    cardHtml('dollar', 'Dolar', mR_d, 4, 'R$/US$', vR_d) +
+    cardHtml('copper', 'Cobre R$/kg', mR_ck, 2, 'R$/kg', vR_ck) +
+    cardHtml('aluminium', 'Aluminio R$/kg', mR_ak, 2, 'R$/kg', vR_ak) +
     '<div class="card-section-title">Media Projetada</div>' +
-    '<div class="card copper"><div class="card-label">Cobre</div><div class="card-value">' + fmt(mP_c,2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio</div><div class="card-value">' + fmt(mP_a,2) + '</div><div class="card-sub">US$/t</div></div>' +
-    '<div class="card dollar"><div class="card-label">Dolar</div><div class="card-value">' + fmt(mP_d,4) + '</div><div class="card-sub">R$/US$</div></div>' +
-    '<div class="card copper"><div class="card-label">Cobre R$/kg</div><div class="card-value">' + fmt(mP_ck,2) + '</div><div class="card-sub">R$/kg</div></div>' +
-    '<div class="card aluminium"><div class="card-label">Aluminio R$/kg</div><div class="card-value">' + fmt(mP_ak,2) + '</div><div class="card-sub">R$/kg</div></div>';
+    cardHtml('copper', 'Cobre', mP_c, 2, 'US$/t', vP_c) +
+    cardHtml('aluminium', 'Aluminio', mP_a, 2, 'US$/t', vP_a) +
+    cardHtml('dollar', 'Dolar', mP_d, 4, 'R$/US$', vP_d) +
+    cardHtml('copper', 'Cobre R$/kg', mP_ck, 2, 'R$/kg', vP_ck) +
+    cardHtml('aluminium', 'Aluminio R$/kg', mP_ak, 2, 'R$/kg', vP_ak);
 }
 
 function renderChart(dados) {
@@ -373,17 +442,45 @@ function renderTable(dados) {
   var mR_ck=calcMedia(dados,c4,'Real'), mP_ck=calcMedia(dados,c4,null);
   var mR_ak=calcMedia(dados,c5,'Real'), mP_ak=calcMedia(dados,c5,null);
 
+  // Busca media do mes anterior no historico
+  var mesAtual = document.getElementById('month-select').value;
+  var idxMesAtual = dadosHistorico.findIndex(function(r) { return (r['Mês'] || r['Mes']) === mesAtual; });
+  var histAnt = idxMesAtual > 0 ? dadosHistorico[idxMesAtual - 1] : null;
+
+  function vMes(atual, histAnterior, campo) {
+    if (!histAnterior) return null;
+    var a = typeof atual === 'number' ? atual : toNum(atual);
+    var b = toNum(histAnterior[campo]);
+    if (a === null || b === null || b === 0) return null;
+    return (a - b) / b;
+  }
+
+  function vProj(proj, real) {
+    if (proj === null || real === null || real === 0) return null;
+    return (proj - real) / real;
+  }
+
+  function tdVar(v) {
+    return '<td class="center">' + fmtVar(v) + '</td>';
+  }
+
   document.getElementById('table-container').innerHTML =
     '<table><thead><tr><th>Data</th><th>Dia</th><th>Tipo</th>' +
     '<th>Cobre US$/t</th><th class="center">Var%</th><th>Aluminio US$/t</th><th class="center">Var%</th>' +
     '<th>Dolar R$/US$</th><th class="center">Var%</th><th>Cobre R$/kg</th><th class="center">Var%</th>' +
     '<th>Aluminio R$/kg</th><th class="center">Var%</th></tr></thead><tbody>' + linhas +
     '<tr class="media-row media-real-row"><td colspan="3">Media Real</td>' +
-    '<td>' + fmt(mR_c,2) + '</td><td></td><td>' + fmt(mR_a,2) + '</td><td></td>' +
-    '<td>' + fmt(mR_d,4) + '</td><td></td><td>' + fmt(mR_ck,2) + '</td><td></td><td>' + fmt(mR_ak,2) + '</td><td></td></tr>' +
+    '<td>' + fmt(mR_c,2) + '</td>' + tdVar(vMes(mR_c, histAnt, 'Cobre (US$/t)')) +
+    '<td>' + fmt(mR_a,2) + '</td>' + tdVar(vMes(mR_a, histAnt, 'Alumínio (US$/t)')) +
+    '<td>' + fmt(mR_d,4) + '</td>' + tdVar(vMes(mR_d, histAnt, 'Dólar')) +
+    '<td>' + fmt(mR_ck,2) + '</td>' + tdVar(vMes(mR_ck, histAnt, 'Cobre (R$/kg)')) +
+    '<td>' + fmt(mR_ak,2) + '</td>' + tdVar(vMes(mR_ak, histAnt, 'Alumínio (R$/kg)')) + '</tr>' +
     '<tr class="media-row media-proj-row"><td colspan="3">Media Projetada</td>' +
-    '<td>' + fmt(mP_c,2) + '</td><td></td><td>' + fmt(mP_a,2) + '</td><td></td>' +
-    '<td>' + fmt(mP_d,4) + '</td><td></td><td>' + fmt(mP_ck,2) + '</td><td></td><td>' + fmt(mP_ak,2) + '</td><td></td></tr>' +
+    '<td>' + fmt(mP_c,2) + '</td>' + tdVar(vProj(mP_c, mR_c)) +
+    '<td>' + fmt(mP_a,2) + '</td>' + tdVar(vProj(mP_a, mR_a)) +
+    '<td>' + fmt(mP_d,4) + '</td>' + tdVar(vProj(mP_d, mR_d)) +
+    '<td>' + fmt(mP_ck,2) + '</td>' + tdVar(vProj(mP_ck, mR_ck)) +
+    '<td>' + fmt(mP_ak,2) + '</td>' + tdVar(vProj(mP_ak, mR_ak)) + '</tr>' +
     '</tbody></table>';
   document.getElementById('total-dias').textContent = reais.length + ' dias reais - ' + (dados.length - reais.length) + ' projetados';
 }
@@ -493,6 +590,7 @@ function renderTabelaHistorico(dados) {
 
 carregarDados();
 carregarHistorico();
+carregarMesAnterior();
 </script>
 </body>
 </html>
