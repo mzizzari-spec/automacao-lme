@@ -110,6 +110,8 @@ def gerar_html_email(dados, nome_mes):
           {card("Cobre Real", media_real[3], media_real[4], "#c45e1a", "US$/t")}
           {card("Alumínio Real", media_real[5], media_real[6], "#2b6cb0", "US$/t")}
           {card("Dólar Real", media_real[7], media_real[8], "#1a7a42", "R$/US$", dec=4)}
+          {card("Cobre R$/kg Real", media_real[9], media_real[10], "#c45e1a", "R$/kg")}
+          {card("Alumínio R$/kg Real", media_real[11], media_real[12], "#2b6cb0", "R$/kg")}
         </tr>"""
     if media_proj and len(media_proj) > 12:
         cards_proj = f"""
@@ -117,6 +119,8 @@ def gerar_html_email(dados, nome_mes):
           {card("Cobre Proj.", media_proj[3], media_proj[4], "#c45e1a", "US$/t")}
           {card("Alumínio Proj.", media_proj[5], media_proj[6], "#2b6cb0", "US$/t")}
           {card("Dólar Proj.", media_proj[7], media_proj[8], "#1a7a42", "R$/US$", dec=4)}
+          {card("Cobre R$/kg Proj.", media_proj[9], media_proj[10], "#c45e1a", "R$/kg")}
+          {card("Alumínio R$/kg Proj.", media_proj[11], media_proj[12], "#2b6cb0", "R$/kg")}
         </tr>"""
 
     # Linhas da tabela
@@ -265,8 +269,7 @@ def enviar_email(html, nome_mes):
     msg = MIMEMultipart('alternative')
     msg['Subject'] = assunto
     msg['From'] = GMAIL_USER
-    msg['To'] = GMAIL_USER
-    msg['Bcc'] = ", ".join(DESTINATARIOS)
+    msg['To'] = ", ".join(DESTINATARIOS)
     msg.attach(MIMEText(html, 'html', 'utf-8'))
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
         server.login(GMAIL_USER, GMAIL_PASSWORD)
