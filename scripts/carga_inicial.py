@@ -135,7 +135,7 @@ def buscar_dados_mes(ano, mes):
         cobre = limpar_numero(colunas[1].get_text(strip=True), americano=True)
         aluminio = limpar_numero(colunas[3].get_text(strip=True), americano=True)
         dolar = limpar_numero(colunas[7].get_text(strip=True))
-        if cobre or aluminio or dolar:
+        if cobre or aluminio:
             dados_mes[d] = {
                 "data": d.strftime("%d/%m/%Y"),
                 "dia_semana": dias_nomes[d.weekday()],
@@ -172,6 +172,9 @@ def processar_mes(planilha, ano, mes, dados_reais):
 
     # Último valor real disponível para projeção
     ultimo_real = None
+    hoje_date = hoje.date() if hasattr(hoje, 'date') else hoje
+    # Remove o dia atual dos dados reais - deve ser Projetado
+    dados_reais = {k: v for k, v in dados_reais.items() if k != hoje_date}
     for d in sorted(dados_reais.keys(), reverse=True):
         ultimo_real = dados_reais[d]
         break
@@ -247,7 +250,7 @@ def processar_mes(planilha, ano, mes, dados_reais):
 
     aba.update(values=todas_linhas, range_name="A1")
     print(f"  ✅ '{nome}': {len(reais)} reais + {len(todos)-len(reais)} projetados")
-    return [l for l in todas_linhas[1:] if len(l) > 2 and isinstance(l[2], str) and l[2] in ("Real","Projetado")], nome
+    return [l for l in todas_linhas[1:] if isinstance(l[2], str) and l[2] in ("Real","Projetado")], nome
 
 def atualizar_consolidado(planilha, todos_os_dados):
     try:
