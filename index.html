@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GMC - LME Metais</title>
+<title>LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -266,11 +266,14 @@ function filtrarMes() {
 }
 
 function varMes(atual, campo) {
+  // atual = valor calculado do mes atual (Real ou Projetado)
+  // campo = nome da coluna no historico para buscar o mes anterior
   if (!dadosHistorico || dadosHistorico.length < 2) return null;
-  var mesAtual = dadosHistorico[dadosHistorico.length - 1];
-  var mesAnt = dadosHistorico[dadosHistorico.length - 2];
-  if (!mesAtual || !mesAnt) return null;
-  var a = toNum(mesAtual[campo]);
+  var mes = document.getElementById('month-select').value;
+  var idx = dadosHistorico.findIndex(function(r) { return (r['Mês'] || r['Mes']) === mes; });
+  var mesAnt = idx > 0 ? dadosHistorico[idx - 1] : dadosHistorico[dadosHistorico.length - 1];
+  if (!mesAnt) return null;
+  var a = typeof atual === 'number' ? atual : toNum(atual);
   var b = toNum(mesAnt[campo]);
   if (a === null || b === null || b === 0) return null;
   return (a - b) / b;
