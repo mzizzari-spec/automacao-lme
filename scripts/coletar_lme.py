@@ -74,19 +74,28 @@ def feriados_moveis(ano):
         pascoa + timedelta(days=60),
     }
 
+def eh_feriado(d):
+    if (d.day, d.month) in FERIADOS_FIXOS:
+        return True
+    if date(d.year, d.month, d.day) in feriados_moveis(d.year):
+        return True
+    return False
+
 def eh_dia_util(d):
     if d.weekday() >= 5:
         return False
-    if (d.day, d.month) in FERIADOS_FIXOS:
-        return False
-    if date(d.year, d.month, d.day) in feriados_moveis(d.year):
+    if eh_feriado(d):
         return False
     return True
+
+def eh_dia_util_ou_feriado(d):
+    """Retorna True para dias uteis E feriados (exclui apenas fins de semana)."""
+    return d.weekday() < 5
 
 def dias_uteis_do_mes(ano, mes):
     _, ultimo_dia = calendar.monthrange(ano, mes)
     return [date(ano, mes, d) for d in range(1, ultimo_dia + 1)
-            if eh_dia_util(date(ano, mes, d))]
+            if eh_dia_util_ou_feriado(date(ano, mes, d))]
 
 def nome_aba(ano, mes):
     return f"{MESES_PT[mes-1]}/{ano}"
@@ -263,9 +272,8 @@ def recalcular_aba(planilha, aba, ano, mes):
         data_str = d.strftime("%d/%m/%Y")
         if data_str in datas_reais:
             r = datas_reais[data_str]
-            if data_str == "04/06/2026":
-                print("DEBUG dia04:", r)
             dolar = para_float(r[7])
+            # Se dolar for None, usa o último conhecido
             if dolar is None:
                 dolar = ultimo_dolar_conhecido
             else:
@@ -327,7 +335,8 @@ def recalcular_aba(planilha, aba, ano, mes):
         # Calcula variações
         var_cobre = calc_variacao(v["cobre"], valor_anterior["cobre"] if valor_anterior else None)
         var_al = calc_variacao(v["aluminio"], valor_anterior["aluminio"] if valor_anterior else None)
-        var_dol = calc_variacao(v["dolar"], valor_anterior["dolar"] if valor_anterior else None)
+        # Dolar em feriado: variacao = None (traco)
+        var_dol = None if v.get("dolar_e_feriado") else calc_variacao(v["dolar"], valor_anterior["dolar"] if valor_anterior else None)
 
         cobre_kg = v["cobre_kg"] or calc_kg(v["cobre"], v["dolar"])
         aluminio_kg = v["aluminio_kg"] or calc_kg(v["aluminio"], v["dolar"])
@@ -367,7 +376,8 @@ def recalcular_aba(planilha, aba, ano, mes):
         valor_anterior = {
             "cobre": v["cobre"],
             "aluminio": v["aluminio"],
-            "dolar": v["dolar"],
+            # Nao atualiza dolar em feriado - mantém o valor anterior
+            "dolar": v["dolar"] if not v.get("dolar_e_feriado") else (valor_anterior["dolar"] if valor_anterior else v["dolar"]),
         }
 
     # Médias do mês
@@ -386,12 +396,24 @@ def recalcular_aba(planilha, aba, ano, mes):
 
 
 def calcular_media_semana(linhas, media_semana_anterior=None):
-    """Calcula média de uma semana com variação em relação à semana anterior."""
+    """Calcula media de uma semana com variacao em relacao a semana anterior."""
     def med(col):
         vals = [para_float(l[col]) for l in linhas if len(l) > col and para_float(l[col]) is not None]
         return round(sum(vals) / len(vals), 4) if vals else None
 
-    m3 = med(3); m5 = med(5); m7 = med(7); m9 = med(9); m11 = med(11)
+    def med_dolar(col):
+        # Dolar: exclui feriados (var_dol == None indica feriado)
+        vals = []
+        for i, l in enumerate(linhas):
+            if len(l) > col and para_float(l[col]) is not None:
+                # Verifica se eh feriado pela variacao do dolar (col 8)
+                var_dol = para_float(l[8]) if len(l) > 8 else None
+                # Se variacao nula E nao eh o primeiro dia, eh feriado
+                if i == 0 or var_dol is not None:
+                    vals.append(para_float(l[col]))
+        return round(sum(vals) / len(vals), 4) if vals else None
+
+    m3 = med(3); m5 = med(5); m7 = med_dolar(7); m9 = med(9); m11 = med(11)
 
     if media_semana_anterior:
         var3 = calc_variacao(m3, para_float(media_semana_anterior[3]))
@@ -579,9 +601,8 @@ def gravar_no_sheets(client, dados):
     aba = obter_ou_criar_aba(planilha, ano, mes)
 
     # Verifica se data já existe
-    todas = aba.get_all_values()
-    ja_existe_real = any(r[0] == dados["data"] and len(r) > 2 and r[2] == "Real" for r in todas)
-    if not ja_existe_real:
+    todas = aba.col_values(1)
+    if dados["data"] not in todas:
         cobre_kg = calc_kg(dados["cobre_usd_t"], dados["dolar_brl"])
         aluminio_kg = calc_kg(dados["aluminio_usd_t"], dados["dolar_brl"])
 
