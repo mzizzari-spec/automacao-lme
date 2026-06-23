@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GMC - LME Metais</title>
+<title>LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -63,7 +63,7 @@
   .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; font-family: 'Inter', sans-serif; text-transform: uppercase; }
   .badge-real { background: var(--real-badge); color: var(--real-text); }
   .badge-proj { background: var(--proj-badge); color: var(--proj-text); }
-  .semana-row td { background: #f8f9fa !important; color: #9aa0b4 !important; font-size: 11px !important; font-style: italic; border-bottom: 2px solid var(--border) !important; }
+  .semana-row td { background: #e8eaee !important; color: #4b5563 !important; font-size: 11px !important; font-style: italic; font-weight: 600 !important; border-bottom: 2px solid var(--border) !important; }
   .media-row td { font-weight: 600; font-family: 'Inter', sans-serif !important; font-size: 11px !important; background: var(--surface2); border-top: 2px solid var(--border); }
   .media-real-row td { color: var(--real-text) !important; }
   .media-proj-row td { color: var(--proj-text) !important; }
@@ -487,11 +487,11 @@ function renderTable(dados) {
     '<td>' + fmt(mR_ck,2) + '</td>' + tdVar(vMes(mR_ck, histAnt, 'Cobre (R$/kg)')) +
     '<td>' + fmt(mR_ak,2) + '</td>' + tdVar(vMes(mR_ak, histAnt, 'Alumínio (R$/kg)')) + '</tr>' +
     '<tr class="media-row media-proj-row"><td colspan="3">Media Projetada</td>' +
-    '<td>' + fmt(mP_c,2) + '</td>' + tdVar(varMes(mP_c, 'Cobre (US$/t)')) +
-    '<td>' + fmt(mP_a,2) + '</td>' + tdVar(varMes(mP_a, 'Alum\u00ednio (US$/t)')) +
-    '<td>' + fmt(mP_d,4) + '</td>' + tdVar(varMes(mP_d, 'D\u00f3lar')) +
-    '<td>' + fmt(mP_ck,2) + '</td>' + tdVar(varMes(mP_ck, 'Cobre (R$/kg)')) +
-    '<td>' + fmt(mP_ak,2) + '</td>' + tdVar(varMes(mP_ak, 'Alum\u00ednio (R$/kg)')) + '</tr>' +
+    '<td>' + fmt(mP_c,2) + '</td>' + tdVar(vProj(mP_c, mR_c)) +
+    '<td>' + fmt(mP_a,2) + '</td>' + tdVar(vProj(mP_a, mR_a)) +
+    '<td>' + fmt(mP_d,4) + '</td>' + tdVar(vProj(mP_d, mR_d)) +
+    '<td>' + fmt(mP_ck,2) + '</td>' + tdVar(vProj(mP_ck, mR_ck)) +
+    '<td>' + fmt(mP_ak,2) + '</td>' + tdVar(vProj(mP_ak, mR_ak)) + '</tr>' +
     '</tbody></table>';
   document.getElementById('total-dias').textContent = reais.length + ' dias reais - ' + (dados.length - reais.length) + ' projetados';
 }
