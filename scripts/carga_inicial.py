@@ -255,7 +255,7 @@ def processar_mes(planilha, ano, mes, dados_reais):
 
     aba.update(values=todas_linhas, range_name="A1")
     print(f"  ✅ '{nome}': {len(reais)} reais + {len(todos)-len(reais)} projetados")
-    return [l for l in todas_linhas[1:] if isinstance(l[2], str) and l[2] in ("Real","Projetado")], nome
+    return [l for l in todas_linhas[1:] if len(l) > 2 and isinstance(l[2], str) and l[2] in ("Real","Projetado")], nome
 
 def atualizar_consolidado(planilha, todos_os_dados):
     try:
