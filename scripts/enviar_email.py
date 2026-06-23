@@ -300,11 +300,14 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
           {td_media(media_real, 9, 2)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_real[9]) if media_real else None, to_float(media_real_ant[9]) if media_real_ant else None))}</td>
           {td_media(media_real, 11, 2)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_real[11]) if media_real else None, to_float(media_real_ant[11]) if media_real_ant else None))}</td>
         </tr>
-        {td_media(media_proj, 3, 0)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[3]) if media_proj else None, to_float(media_real_ant[3]) if media_real_ant else None))}</td>
+        <tr style="background:#f0f1f4;">
+          <td colspan="3" style="padding:7px 10px;font-size:11px;font-weight:600;color:#1d4ed8;">Media Projetada</td>
+          {td_media(media_proj, 3, 0)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[3]) if media_proj else None, to_float(media_real_ant[3]) if media_real_ant else None))}</td>
           {td_media(media_proj, 5, 0)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[5]) if media_proj else None, to_float(media_real_ant[5]) if media_real_ant else None))}</td>
           {td_media(media_proj, 7, 4)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[7]) if media_proj else None, to_float(media_real_ant[7]) if media_real_ant else None))}</td>
           {td_media(media_proj, 9, 2)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[9]) if media_proj else None, to_float(media_real_ant[9]) if media_real_ant else None))}</td>
           {td_media(media_proj, 11, 2)}<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(calc_var(to_float(media_proj[11]) if media_proj else None, to_float(media_real_ant[11]) if media_real_ant else None))}</td>
+        </tr>
       </tbody>
     </table>
   </div>
