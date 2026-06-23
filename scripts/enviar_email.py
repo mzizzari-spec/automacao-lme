@@ -150,9 +150,9 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
         return calc_var(atual, ant)
 
     def var_p(col):
-        proj = to_float(media_proj[col]) if media_proj and len(media_proj) > col else None
-        real = to_float(media_real[col]) if media_real and len(media_real) > col else None
-        return calc_var(proj, real)
+        proj = to_float(media_proj[col]) if len(media_proj) > col else None
+        ant = to_float(media_real_ant[col]) if media_real_ant and len(media_real_ant) > col else None
+        return calc_var(proj, ant)
 
     cards_real = ""
     if media_real and len(media_real) > 12:
@@ -247,7 +247,7 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
 
     def tmv_p(col):
         v = calc_var(to_float(media_proj[col]) if media_proj and len(media_proj) > col else None,
-                     to_float(media_real[col]) if media_real and len(media_real) > col else None)
+                     to_float(media_real_ant[col]) if media_real_ant and len(media_real_ant) > col else None)
         return '<td style="padding:7px 10px;font-size:10px;text-align:center;">{}</td>'.format(fmt_var(v))
 
     data_hora = hoje.strftime("%d/%m/%Y %H:%M")
