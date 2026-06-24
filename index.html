@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GMC - LME Metais</title>
+<title>LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -412,6 +412,18 @@ function renderTable(dados) {
     return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
   }
 
+  function medSemanaDolar(arr) {
+    var vals = [];
+    arr.forEach(function(r, i) {
+      var v = toNum(r['D\u00f3lar (R$/US$)']);
+      var varDol = toNum(r['Var. D\u00f3lar']);
+      if (v !== null && (i === 0 || (varDol !== null && varDol !== 0) || r['Tipo'] === 'Projetado')) {
+        vals.push(v);
+      }
+    });
+    return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+  }
+
   var linhasFinais = [], semanaAdicionadas = new Set();
   linhasTabela.forEach(function(item) {
     if (item.tipo === 'semana') {
@@ -426,7 +438,7 @@ function renderTable(dados) {
     if (item.tipo === 'semana') {
       mediasSemanas.push({
         c1: medSemana(item.dados,c1), c2: medSemana(item.dados,c2),
-        c3: medSemana(item.dados,c3), c4: medSemana(item.dados,c4),
+        c3: medSemanaDolar(item.dados), c4: medSemana(item.dados,c4),
         c5: medSemana(item.dados,c5)
       });
     }
