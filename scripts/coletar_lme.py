@@ -601,11 +601,11 @@ def gravar_no_sheets(client, dados):
     aba = obter_ou_criar_aba(planilha, ano, mes)
 
     # Verifica se data já existe
-    todas = aba.col_values(1)
-    if dados["data"] not in todas:
+    todas = aba.get_all_values()
+    ja_existe_real = any(r[0] == dados["data"] and len(r) > 2 and r[2] == "Real" and para_float(r[3]) is not None for r in todas)
+    if not ja_existe_real:
         cobre_kg = calc_kg(dados["cobre_usd_t"], dados["dolar_brl"])
         aluminio_kg = calc_kg(dados["aluminio_usd_t"], dados["dolar_brl"])
-
         nova_linha = [
             dados["data"], dados["dia_semana"], "Real",
             dados["cobre_usd_t"], None,
@@ -617,7 +617,7 @@ def gravar_no_sheets(client, dados):
         aba.append_row(nova_linha)
         print(f"✅ Linha real gravada.")
     else:
-        print(f"⚠️  Data {dados['data']} já existe.")
+        print(f"⚠️  Data {dados['data']} já existe como Real.")
 
     # Recalcula tudo
     linhas_dias = recalcular_aba(planilha, aba, ano, mes)
