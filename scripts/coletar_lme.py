@@ -432,19 +432,17 @@ def calcular_media_mes(linhas, label):
     def med(col):
         vals = [para_float(l[col]) for l in linhas if len(l) > col and para_float(l[col]) is not None]
         return round(sum(vals) / len(vals), 4) if vals else None
-
     def med_dolar(col):
-        # Exclui feriados (var_dol == None e nao eh o primeiro dia)
+        # Exclui feriados Real com var_dol None (nao exclui Projetados)
         vals = []
         for i, l in enumerate(linhas):
             if len(l) > col and para_float(l[col]) is not None:
                 var_dol = para_float(l[8]) if len(l) > 8 else None
-                if i == 0 or var_dol is not None:
+                tipo = l[2] if len(l) > 2 else ""
+                if tipo == "Projetado" or i == 0 or var_dol is not None:
                     vals.append(para_float(l[col]))
         return round(sum(vals) / len(vals), 4) if vals else None
-
     return [label, "", "", med(3), med(4), med(5), med(6), med_dolar(7), med(8), med(9), med(10), med(11), med(12)]
-
 
 def atualizar_resumo_mensal(planilha, aba, ano, mes):
     """Atualiza o resumo mensal abaixo dos dados na aba."""
