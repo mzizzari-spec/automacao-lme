@@ -249,14 +249,22 @@ def processar_mes(planilha, ano, mes, dados_reais):
         vals = [para_float(l[col]) for l in linhas if len(l) > col and para_float(l[col]) is not None]
         return round(sum(vals)/len(vals), 4) if vals else None
 
+    def med_mes_dolar(linhas, col):
+        # Exclui feriados (var_dol == None e nao eh o primeiro dia)
+        vals = []
+        for i, l in enumerate(linhas):
+            if len(l) > col and para_float(l[col]) is not None:
+                var_dol = para_float(l[8]) if len(l) > 8 else None
+                if i == 0 or var_dol is not None:
+                    vals.append(para_float(l[col]))
+        return round(sum(vals)/len(vals), 4) if vals else None
+
     todas_linhas.append([])
-    todas_linhas.append(["Média Real","","",med_mes(reais,3),med_mes(reais,4),med_mes(reais,5),med_mes(reais,6),med_mes(reais,7),med_mes(reais,8),med_mes(reais,9),med_mes(reais,10),med_mes(reais,11),med_mes(reais,12)])
-    todas_linhas.append(["Média Projetada","","",med_mes(todos,3),med_mes(todos,4),med_mes(todos,5),med_mes(todos,6),med_mes(todos,7),med_mes(todos,8),med_mes(todos,9),med_mes(todos,10),med_mes(todos,11),med_mes(todos,12)])
-
+    todas_linhas.append(["Media Real","","",med_mes(reais,3),med_mes(reais,4),med_mes(reais,5),med_mes(reais,6),med_mes_dolar(reais,7),med_mes(reais,8),med_mes(reais,9),med_mes(reais,10),med_mes(reais,11),med_mes(reais,12)])
+    todas_linhas.append(["Media Projetada","","",med_mes(todos,3),med_mes(todos,4),med_mes(todos,5),med_mes(todos,6),med_mes_dolar(todos,7),med_mes(todos,8),med_mes(todos,9),med_mes(todos,10),med_mes(todos,11),med_mes(todos,12)])
     aba.update(values=todas_linhas, range_name="A1")
-    print(f"  ✅ '{nome}': {len(reais)} reais + {len(todos)-len(reais)} projetados")
+    print("  '{}': {} reais + {} projetados".format(nome, len(reais), len(todos)-len(reais)))
     return [l for l in todas_linhas[1:] if len(l) > 2 and isinstance(l[2], str) and l[2] in ("Real","Projetado")], nome
-
 def atualizar_consolidado(planilha, todos_os_dados):
     try:
         consolidado = planilha.worksheet("Consolidado")
