@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LME Metais</title>
+<title>GMC - LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -185,7 +185,6 @@ function calcMedia(arr, campo, tipo) {
 }
 
 function calcMediaDolar(arr, tipo) {
-  // Exclui feriados — dias onde Var. Dolar eh null e nao eh o primeiro dia
   var campo = 'D\u00f3lar (R$/US$)';
   var varCampo = 'Var. D\u00f3lar';
   var filtrados = arr.filter(function(r) { return tipo ? r['Tipo'] === tipo : true; });
@@ -202,7 +201,7 @@ function calcMediaDolar(arr, tipo) {
   if (!vals.length) return null;
   return vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
 }
-
+  
 function varSem(atual, ant) {
   if (atual === null || ant === null || ant === 0) return null;
   return (atual - ant) / ant;
