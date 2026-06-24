@@ -184,6 +184,26 @@ function calcMedia(arr, campo, tipo) {
   return vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
 }
 
+function calcMediaDolar(arr, tipo) {
+  // Exclui feriados — dias onde Var. Dolar eh null e nao eh o primeiro dia
+  var campo = 'D\u00f3lar (R$/US$)';
+  var varCampo = 'Var. D\u00f3lar';
+  var filtrados = arr.filter(function(r) { return tipo ? r['Tipo'] === tipo : true; });
+  var vals = [];
+  filtrados.forEach(function(r, i) {
+    var v = toNum(r[campo]);
+    var varDol = toNum(r[varCampo]);
+    if (v !== null && v > 0) {
+      if (i === 0 || varDol !== null) {
+        vals.push(v);
+      }
+    }
+  });
+  if (!vals.length) return null;
+  return vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
+}
+}
+
 function varSem(atual, ant) {
   if (atual === null || ant === null || ant === 0) return null;
   return (atual - ant) / ant;
@@ -298,7 +318,7 @@ function renderCards(dados) {
   var c1 = 'Cobre (US$/t)', c2 = 'Alum\u00ednio (US$/t)', c3 = 'D\u00f3lar (R$/US$)', c4 = 'Cobre (R$/kg)', c5 = 'Alum\u00ednio (R$/kg)';
   var mR_c = calcMedia(dados,c1,'Real'), mP_c = calcMedia(dados,c1,null);
   var mR_a = calcMedia(dados,c2,'Real'), mP_a = calcMedia(dados,c2,null);
-  var mR_d = calcMedia(dados,c3,'Real'), mP_d = calcMedia(dados,c3,null);
+  var mR_d = calcMediaDolar(dados,'Real'), mP_d = calcMediaDolar(dados,null);
   var mR_ck = calcMedia(dados,c4,'Real'), mP_ck = calcMedia(dados,c4,null);
   var mR_ak = calcMedia(dados,c5,'Real'), mP_ak = calcMedia(dados,c5,null);
 
@@ -442,7 +462,7 @@ function renderTable(dados) {
 
   var mR_c=calcMedia(dados,c1,'Real'), mP_c=calcMedia(dados,c1,null);
   var mR_a=calcMedia(dados,c2,'Real'), mP_a=calcMedia(dados,c2,null);
-  var mR_d=calcMedia(dados,c3,'Real'), mP_d=calcMedia(dados,c3,null);
+  var mR_d=calcMediaDolar(dados,'Real'), mP_d=calcMediaDolar(dados,null);
   var mR_ck=calcMedia(dados,c4,'Real'), mP_ck=calcMedia(dados,c4,null);
   var mR_ak=calcMedia(dados,c5,'Real'), mP_ak=calcMedia(dados,c5,null);
 
