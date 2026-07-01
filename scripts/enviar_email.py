@@ -80,7 +80,17 @@ def obter_dados_mes_atual(client):
     hoje = datetime.now()
     mes_atual = hoje.month
     ano_atual = hoje.year
-    nome_aba = f"{MESES_PT[mes_atual-1]}/{ano_atual}"
+    # Dia 1: usa mes anterior (fechado). Demais dias: usa mes atual
+    if hoje.day == 1:
+        mes_email = mes_atual - 1
+        ano_email = ano_atual
+        if mes_email == 0:
+            mes_email = 12
+            ano_email -= 1
+    else:
+        mes_email = mes_atual
+        ano_email = ano_atual
+    nome_aba = f"{MESES_PT[mes_email-1]}/{ano_email}"
 
     mes_ant = mes_atual - 1
     ano_ant = ano_atual
