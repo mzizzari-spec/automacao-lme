@@ -206,6 +206,7 @@ def obter_ou_criar_aba(planilha, ano, mes):
         aba = planilha.worksheet(nome)
     except gspread.WorksheetNotFound:
         aba = planilha.add_worksheet(title=nome, rows=200, cols=15)
+        aba.update(values=[CABECALHO], range_name="A1")
         print(f"Aba '{nome}' criada.")
     return aba
 
