@@ -610,7 +610,7 @@ def gravar_no_sheets(client, dados):
 
     # Verifica se data já existe
     todas = aba.get_all_values()
-    ja_existe_real = any(r[0] == dados["data"] and len(r) > 2 and r[2] == "Real" and para_float(r[3]) is not None for r in todas)
+    ja_existe_real = any(len(r) > 3 and r[0] == dados["data"] and r[2] == "Real" and para_float(r[3]) is not None for r in todas)
     if not ja_existe_real:
         cobre_kg = calc_kg(dados["cobre_usd_t"], dados["dolar_brl"])
         aluminio_kg = calc_kg(dados["aluminio_usd_t"], dados["dolar_brl"])
