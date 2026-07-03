@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GMC1 - LME Metais</title>
+<title>GMC - LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -254,45 +254,17 @@ function popularMeses() {
   sel.innerHTML = mesesFinal.map(function(m) { return '<option value="' + m + '">' + m + '</option>'; }).join('');
 }
 
-function isoWeek(d) {
-  var date = new Date(d.getTime());
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-  var week1 = new Date(date.getFullYear(), 0, 4);
-  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
-}
-
 function filtrarMes() {
   var mes = document.getElementById('month-select').value;
   var dados = todosOsDados.filter(function(r) {
     var m = r['M\u00eas'] || r['Mes'] || null;
     return m === mes;
   });
-
-  var dadosComSemanaAnterior = dados;
-  if (dados.length > 0) {
-    var primeiroDia = dados[0];
-    var partes = String(primeiroDia['Data'] || '').split('/');
-    if (partes.length === 3) {
-      var d = new Date(partes[2], partes[1]-1, partes[0]);
-      if (d.getDay() !== 1) {
-        var diasAnteriores = todosOsDados.filter(function(r) {
-          var m = r['M\u00eas'] || r['Mes'] || null;
-          if (m === mes) return false;
-          var pp = String(r['Data'] || '').split('/');
-          if (pp.length !== 3) return false;
-          var dd = new Date(pp[2], pp[1]-1, pp[0]);
-          return isoWeek(dd) === isoWeek(d) && dd < d;
-        });
-        dadosComSemanaAnterior = diasAnteriores.concat(dados);
-      }
-    }
-  }
-
   renderCards(dados);
   renderChart(dados);
-  renderTable(dadosComSemanaAnterior);
+  renderTable(dados);
 }
+
 function varMes(atual, campo) {
   // atual = valor calculado do mes atual (Real ou Projetado)
   // campo = nome da coluna no historico para buscar o mes anterior
@@ -386,10 +358,18 @@ function renderChart(dados) {
 }
 
 function renderTable(dados) {
-  var reais = dados.filter(function(r) { return r['Tipo'] === 'Real'; });
+  // dados pode incluir dias do mes anterior para calculo da media semanal
+  // mas so exibimos os dias do mes atual
+  var mes = document.getElementById('month-select').value;
+  var dadosExibir = dados.filter(function(r) {
+    var m = r['Mês'] || r['Mes'] || null;
+    return m === mes;
+  });
+  var reais = dadosExibir.filter(function(r) { return r['Tipo'] === 'Real'; });
   var c1='Cobre (US$/t)', c2='Alum\u00ednio (US$/t)', c3='D\u00f3lar (R$/US$)', c4='Cobre (R$/kg)', c5='Alum\u00ednio (R$/kg)';
   var vc1='Var. Cobre', vc2='Var. Alum\u00ednio', vc3='Var. D\u00f3lar', vc4='Var. Cobre/kg', vc5='Var. Alum\u00ednio/kg';
   var semanaAtual = [], linhasTabela = [], semanaNum = null;
+  var dadosParaCalculo = dados; // todos os dias incluindo mes anterior para media semanal
 
   function getWeekNumber(d) {
     var date = new Date(d.getTime());
@@ -409,7 +389,7 @@ function renderTable(dados) {
     semanaNum = semana;
     linhasTabela.push({tipo: 'dia', r: r});
     semanaAtual.push(r);
-    var proximo = dados[idx+1];
+    var proximo = dadosParaCalculo[idx+1];
     var proximaSemana = proximo ? (function() {
       var pp = String(proximo['Data'] || '').split('/');
       var dd = pp.length === 3 ? new Date(pp[2], pp[1]-1, pp[0]) : null;
@@ -449,6 +429,9 @@ function renderTable(dados) {
   var linhas = linhasFinais.map(function(item) {
     if (item.tipo === 'dia') {
       var r = item.r;
+      // Nao exibe dias de outros meses
+      var mDia = r['Mês'] || r['Mes'] || null;
+      if (mDia && mDia !== mes) return '';
       return '<tr>' +
         '<td>' + (r['Data']||'') + '</td><td>' + (r['Dia da Semana']||'') + '</td>' +
         '<td><span class="badge ' + (r['Tipo']==='Real'?'badge-real':'badge-proj') + '">' + r['Tipo'] + '</span></td>' +
@@ -524,7 +507,7 @@ function renderTable(dados) {
     '<td>' + fmt(mP_ck,2) + '</td>' + tdVar(vProj(mP_ck, mR_ck)) +
     '<td>' + fmt(mP_ak,2) + '</td>' + tdVar(vProj(mP_ak, mR_ak)) + '</tr>' +
     '</tbody></table>';
-  document.getElementById('total-dias').textContent = reais.length + ' dias reais - ' + (dados.length - reais.length) + ' projetados';
+  document.getElementById('total-dias').textContent = reais.length + ' dias reais - ' + (dadosExibir.length - reais.length) + ' projetados';
 }
 
 function carregarHistorico() {
