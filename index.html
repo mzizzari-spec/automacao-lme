@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GMC - LME Metais</title>
+<title>LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -429,9 +429,6 @@ function renderTable(dados) {
   var linhas = linhasFinais.map(function(item) {
     if (item.tipo === 'dia') {
       var r = item.r;
-      // Nao exibe dias de outros meses
-      var mDia = r['Mês'] || r['Mes'] || null;
-      if (mDia && mDia !== mes) return '';
       return '<tr>' +
         '<td>' + (r['Data']||'') + '</td><td>' + (r['Dia da Semana']||'') + '</td>' +
         '<td><span class="badge ' + (r['Tipo']==='Real'?'badge-real':'badge-proj') + '">' + r['Tipo'] + '</span></td>' +
