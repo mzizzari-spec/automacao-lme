@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LME Metais</title>
+<title>GMC - LME Metais</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -184,24 +184,6 @@ function calcMedia(arr, campo, tipo) {
   return vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
 }
 
-function calcMediaDolar(arr, tipo) {
-  var campo = 'D\u00f3lar (R$/US$)';
-  var varCampo = 'Var. D\u00f3lar';
-  var filtrados = arr.filter(function(r) { return tipo ? r['Tipo'] === tipo : true; });
-  var vals = [];
-  filtrados.forEach(function(r, i) {
-    var v = toNum(r[campo]);
-    var varDol = toNum(r[varCampo]);
-    if (v !== null && v > 0) {
-      if (i === 0 || (varDol !== null && varDol !== 0) || r['Tipo'] === 'Projetado') {
-        vals.push(v);
-      }
-    }
-  });
-  if (!vals.length) return null;
-  return vals.reduce(function(a, b) { return a + b; }, 0) / vals.length;
-}
-  
 function varSem(atual, ant) {
   if (atual === null || ant === null || ant === 0) return null;
   return (atual - ant) / ant;
@@ -316,7 +298,7 @@ function renderCards(dados) {
   var c1 = 'Cobre (US$/t)', c2 = 'Alum\u00ednio (US$/t)', c3 = 'D\u00f3lar (R$/US$)', c4 = 'Cobre (R$/kg)', c5 = 'Alum\u00ednio (R$/kg)';
   var mR_c = calcMedia(dados,c1,'Real'), mP_c = calcMedia(dados,c1,null);
   var mR_a = calcMedia(dados,c2,'Real'), mP_a = calcMedia(dados,c2,null);
-  var mR_d = calcMediaDolar(dados,'Real'), mP_d = calcMediaDolar(dados,null);
+  var mR_d = calcMedia(dados,c3,'Real'), mP_d = calcMedia(dados,c3,null);
   var mR_ck = calcMedia(dados,c4,'Real'), mP_ck = calcMedia(dados,c4,null);
   var mR_ak = calcMedia(dados,c5,'Real'), mP_ak = calcMedia(dados,c5,null);
 
@@ -382,8 +364,7 @@ function renderTable(dados) {
   var semanaAtual = [], linhasTabela = [], semanaNum = null;
 
   function getWeekNumber(d) {
-    var onejan = new Date(d.getFullYear(), 0, 1);
-    return Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+    return getWeekNumberISO(d);
   }
 
   dados.forEach(function(r, idx) {
@@ -412,18 +393,6 @@ function renderTable(dados) {
     return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
   }
 
-  function medSemanaDolar(arr) {
-    var vals = [];
-    arr.forEach(function(r, i) {
-      var v = toNum(r['D\u00f3lar (R$/US$)']);
-      var varDol = toNum(r['Var. D\u00f3lar']);
-      if (v !== null && (i === 0 || (varDol !== null && varDol !== 0) || r['Tipo'] === 'Projetado')) {
-        vals.push(v);
-      }
-    });
-    return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
-  }
-
   var linhasFinais = [], semanaAdicionadas = new Set();
   linhasTabela.forEach(function(item) {
     if (item.tipo === 'semana') {
@@ -438,7 +407,7 @@ function renderTable(dados) {
     if (item.tipo === 'semana') {
       mediasSemanas.push({
         c1: medSemana(item.dados,c1), c2: medSemana(item.dados,c2),
-        c3: medSemanaDolar(item.dados), c4: medSemana(item.dados,c4),
+        c3: medSemana(item.dados,c3), c4: medSemana(item.dados,c4),
         c5: medSemana(item.dados,c5)
       });
     }
@@ -472,7 +441,7 @@ function renderTable(dados) {
 
   var mR_c=calcMedia(dados,c1,'Real'), mP_c=calcMedia(dados,c1,null);
   var mR_a=calcMedia(dados,c2,'Real'), mP_a=calcMedia(dados,c2,null);
-  var mR_d=calcMediaDolar(dados,'Real'), mP_d=calcMediaDolar(dados,null);
+  var mR_d=calcMedia(dados,c3,'Real'), mP_d=calcMedia(dados,c3,null);
   var mR_ck=calcMedia(dados,c4,'Real'), mP_ck=calcMedia(dados,c4,null);
   var mR_ak=calcMedia(dados,c5,'Real'), mP_ak=calcMedia(dados,c5,null);
 
@@ -517,11 +486,11 @@ function renderTable(dados) {
     '<td>' + fmt(mR_ck,2) + '</td>' + tdVar(vMes(mR_ck, histAnt, 'Cobre (R$/kg)')) +
     '<td>' + fmt(mR_ak,2) + '</td>' + tdVar(vMes(mR_ak, histAnt, 'Alumínio (R$/kg)')) + '</tr>' +
     '<tr class="media-row media-proj-row"><td colspan="3">Media Projetada</td>' +
-    '<td>' + fmt(mP_c,2) + '</td>' + tdVar(varMes(mP_c, 'Cobre (US$/t)')) +
-    '<td>' + fmt(mP_a,2) + '</td>' + tdVar(varMes(mP_a, 'Alum\u00ednio (US$/t)')) +
-    '<td>' + fmt(mP_d,4) + '</td>' + tdVar(varMes(mP_d, 'D\u00f3lar')) +
-    '<td>' + fmt(mP_ck,2) + '</td>' + tdVar(varMes(mP_ck, 'Cobre (R$/kg)')) +
-    '<td>' + fmt(mP_ak,2) + '</td>' + tdVar(varMes(mP_ak, 'Alum\u00ednio (R$/kg)')) + '</tr>' +
+    '<td>' + fmt(mP_c,2) + '</td>' + tdVar(vProj(mP_c, mR_c)) +
+    '<td>' + fmt(mP_a,2) + '</td>' + tdVar(vProj(mP_a, mR_a)) +
+    '<td>' + fmt(mP_d,4) + '</td>' + tdVar(vProj(mP_d, mR_d)) +
+    '<td>' + fmt(mP_ck,2) + '</td>' + tdVar(vProj(mP_ck, mR_ck)) +
+    '<td>' + fmt(mP_ak,2) + '</td>' + tdVar(vProj(mP_ak, mR_ak)) + '</tr>' +
     '</tbody></table>';
   document.getElementById('total-dias').textContent = reais.length + ' dias reais - ' + (dados.length - reais.length) + ' projetados';
 }
