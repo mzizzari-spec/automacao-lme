@@ -254,6 +254,14 @@ function popularMeses() {
   sel.innerHTML = mesesFinal.map(function(m) { return '<option value="' + m + '">' + m + '</option>'; }).join('');
 }
 
+function isoWeek(d) {
+  var date = new Date(d.getTime());
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  var week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+
 function filtrarMes() {
   var mes = document.getElementById('month-select').value;
   var dados = todosOsDados.filter(function(r) {
