@@ -540,11 +540,11 @@ function renderTable(dados) {
     }
   }).join('');
 
-  var mR_c=calcMedia(dados,c1,'Real'), mP_c=calcMedia(dados,c1,null);
-  var mR_a=calcMedia(dados,c2,'Real'), mP_a=calcMedia(dados,c2,null);
-  var mR_d=calcMedia(dados,c3,'Real'), mP_d=calcMedia(dados,c3,null);
-  var mR_ck=calcMedia(dados,c4,'Real'), mP_ck=calcMedia(dados,c4,null);
-  var mR_ak=calcMedia(dados,c5,'Real'), mP_ak=calcMedia(dados,c5,null);
+  var mR_c=calcMedia(dadosExibir,c1,'Real'), mP_c=calcMedia(dadosExibir,c1,null);
+  var mR_a=calcMedia(dadosExibir,c2,'Real'), mP_a=calcMedia(dadosExibir,c2,null);
+  var mR_d=calcMediaDolar(dadosExibir,'Real'), mP_d=calcMediaDolar(dadosExibir,null);
+  var mR_ck=calcMedia(dadosExibir,c4,'Real'), mP_ck=calcMedia(dadosExibir,c4,null);
+  var mR_ak=calcMedia(dadosExibir,c5,'Real'), mP_ak=calcMedia(dadosExibir,c5,null);
 
   // Busca media do mes anterior no historico
   var mesAtual = document.getElementById('month-select').value;
