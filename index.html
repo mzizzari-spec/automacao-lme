@@ -454,6 +454,45 @@ function renderTable(dados) {
     }
   });
 
+  // Calcula ultima media semanal completa do mes anterior (para variacao da primeira semana)
+  var ultimaMediaSemanaAnt = null;
+  var mesPrimeiroDia = dadosParaCalculo.length > 0 ? (dadosParaCalculo[0]['M\u00eas'] || dadosParaCalculo[0]['Mes']) : null;
+  var dadosMesAnt = todosOsDados.filter(function(r) {
+    var m = r['M\u00eas'] || r['Mes'] || null;
+    return m && m !== mes;
+  });
+  if (dadosMesAnt.length > 0) {
+    // Agrupa por semana ISO e pega a ultima semana que nao eh compartilhada
+    var semanasMesAnt = {};
+    dadosMesAnt.forEach(function(r) {
+      var pp = String(r['Data'] || '').split('/');
+      if (pp.length !== 3) return;
+      var dd = new Date(pp[2], pp[1]-1, pp[0]);
+      var w = getWeekNumber(dd);
+      if (!semanasMesAnt[w]) semanasMesAnt[w] = [];
+      semanasMesAnt[w].push(r);
+    });
+    // Semana ISO do primeiro dia do mes atual
+    var ppPrimeiro = String((dadosParaCalculo[0] || {})['Data'] || '').split('/');
+    var dPrimeiro = ppPrimeiro.length === 3 ? new Date(ppPrimeiro[2], ppPrimeiro[1]-1, ppPrimeiro[0]) : null;
+    var semanaCompartilhada = dPrimeiro ? getWeekNumber(dPrimeiro) : null;
+    // Pega semanas do mes anterior excluindo a compartilhada
+    var semanasMesAntKeys = Object.keys(semanasMesAnt).map(Number).sort(function(a,b){return a-b;});
+    for (var si = semanasMesAntKeys.length - 1; si >= 0; si--) {
+      if (semanasMesAntKeys[si] !== semanaCompartilhada) {
+        var diasSemAnt = semanasMesAnt[semanasMesAntKeys[si]];
+        ultimaMediaSemanaAnt = {
+          c1: medSemana(diasSemAnt, c1),
+          c2: medSemana(diasSemAnt, c2),
+          c3: medSemanaDolar(diasSemAnt),
+          c4: medSemana(diasSemAnt, c4),
+          c5: medSemana(diasSemAnt, c5)
+        };
+        break;
+      }
+    }
+  }
+
   var semanaIdx = 0;
   var linhas = linhasFinais.map(function(item) {
     if (item.tipo === 'dia') {
@@ -471,7 +510,7 @@ function renderTable(dados) {
         '</tr>';
     } else {
       var ms = mediasSemanas[semanaIdx];
-      var mp = semanaIdx > 0 ? mediasSemanas[semanaIdx - 1] : null;
+      var mp = semanaIdx > 0 ? mediasSemanas[semanaIdx - 1] : ultimaMediaSemanaAnt;
       semanaIdx++;
       return '<tr class="semana-row"><td colspan="3">Media semana</td>' +
         '<td>' + fmt(ms.c1,2) + '</td><td class="center">' + fmtVar(varSem(ms.c1, mp ? mp.c1 : null)) + '</td>' +
