@@ -9,7 +9,7 @@ import json
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -132,10 +132,50 @@ def obter_dados_mes_atual(client):
     except Exception as e:
         print(f"⚠️  Historico não encontrado: {e}")
 
-    return dados, nome_aba, media_real_ant
+    # Busca dias do mes anterior na mesma semana ISO do primeiro dia do mes
+    dias_semana_anterior = []
+    try:
+        # Primeiro dia util do mes atual
+        primeiro_dia = date(ano_email, mes_email, 1)
+        while primeiro_dia.weekday() >= 5:
+            primeiro_dia += timedelta(days=1)
+
+        semana_iso_primeiro = primeiro_dia.isocalendar()[1]
+
+        # Se nao for segunda, busca dias anteriores da mesma semana
+        if primeiro_dia.weekday() != 0:
+            mes_ant2 = mes_email - 1
+            ano_ant2 = ano_email
+            if mes_ant2 == 0:
+                mes_ant2 = 12
+                ano_ant2 -= 1
+            nome_aba_ant2 = f"{MESES_PT[mes_ant2-1]}/{ano_ant2}"
+            try:
+                aba_ant2 = planilha.worksheet(nome_aba_ant2)
+                dados_ant2 = aba_ant2.get_all_values()
+                for linha in dados_ant2[1:]:
+                    if not linha or len(linha) < 3:
+                        continue
+                    if linha[2] not in ("Real", "Projetado"):
+                        continue
+                    if not linha[0]:
+                        continue
+                    try:
+                        partes = linha[0].split("/")
+                        d = date(int(partes[2]), int(partes[1]), int(partes[0]))
+                        if d.isocalendar()[1] == semana_iso_primeiro and d < primeiro_dia:
+                            dias_semana_anterior.append(linha)
+                    except:
+                        continue
+            except:
+                pass
+    except Exception as e:
+        print(f"Aviso: nao foi possivel buscar dias do mes anterior: {e}")
+
+    return dados, nome_aba, media_real_ant, dias_semana_anterior
 
 
-def gerar_html_email(dados, nome_mes, media_real_ant=None):
+def gerar_html_email(dados, nome_mes, media_real_ant=None, dias_semana_anterior=None):
     hoje = datetime.now()
 
     linhas_dias = [l for l in dados[1:] if len(l) > 2 and l[2] in ("Real", "Projetado")]
@@ -189,19 +229,26 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
     # Gera linhas da tabela
     linhas_html = ""
     semana_idx = 0
+    dias_anteriores_set = set(l[0] for l in (dias_semana_anterior or []))
 
-    for l in dados[1:]:
+    # Combina dias anteriores com dados atuais para iterar
+    todas_linhas_tabela = list(dias_semana_anterior or []) + dados[1:]
+
+    for l in todas_linhas_tabela:
         if not l or len(l) < 3:
             continue
         tipo = l[2] if len(l) > 2 else ""
+        eh_mes_anterior = l[0] in dias_anteriores_set
 
         if tipo in ("Real", "Projetado"):
             if tipo == "Real":
                 badge = '<span style="background:#dcfce7;color:#15803d;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;">Real</span>'
-                bg = "#ffffff"
+                bg = "#ffffff" if not eh_mes_anterior else "#f5f5f5"
             else:
                 badge = '<span style="background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;">Proj.</span>'
-                bg = "#f8faff"
+                bg = "#f8faff" if not eh_mes_anterior else "#f5f5f5"
+
+            opacidade = ' opacity:0.5;' if eh_mes_anterior else ''
 
             def td(col, dec=2, linha=l):
                 val = linha[col] if len(linha) > col else ""
@@ -212,7 +259,7 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None):
                 return f'<td style="padding:7px 10px;font-size:10px;text-align:center;">{fmt_var(val)}</td>'
 
             linhas_html += f"""
-            <tr style="background:{bg};border-bottom:1px solid #e2e4ea;">
+            <tr style="background:{bg};border-bottom:1px solid #e2e4ea;{opacidade}">
               <td style="padding:7px 10px;font-size:11px;color:#6b7280;">{l[0]}</td>
               <td style="padding:7px 10px;font-size:11px;">{l[1]}</td>
               <td style="padding:7px 10px;">{badge}</td>
@@ -356,8 +403,8 @@ def main():
     print(f"Iniciando envio — {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     print("=" * 50)
     client = conectar_google_sheets()
-    dados, nome_mes, media_real_ant = obter_dados_mes_atual(client)
-    html = gerar_html_email(dados, nome_mes, media_real_ant)
+    dados, nome_mes, media_real_ant, dias_semana_anterior = obter_dados_mes_atual(client)
+    html = gerar_html_email(dados, nome_mes, media_real_ant, dias_semana_anterior)
     enviar_email(html, nome_mes)
     print("✅ Concluído!")
 
