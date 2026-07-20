@@ -260,9 +260,31 @@ function filtrarMes() {
     var m = r['M\u00eas'] || r['Mes'] || null;
     return m === mes;
   });
+
+  var dadosComSemanaAnterior = dados;
+  if (dados.length > 0) {
+    var primeiroDia = dados[0];
+    var partes = String(primeiroDia['Data'] || '').split('/');
+    if (partes.length === 3) {
+      var d = new Date(partes[2], partes[1]-1, partes[0]);
+      if (d.getDay() !== 1) {
+        var diasAnteriores = todosOsDados.filter(function(r) {
+          var m = r['M\u00eas'] || r['Mes'] || null;
+          if (m === mes) return false;
+          var pp = String(r['Data'] || '').split('/');
+          if (pp.length !== 3) return false;
+          var dd = new Date(pp[2], pp[1]-1, pp[0]);
+          return isoWeek(dd) === isoWeek(d) && dd < d;
+        });
+        dadosComSemanaAnterior = diasAnteriores.concat(dados);
+      }
+    }
+  }
+
   renderCards(dados);
   renderChart(dados);
   renderTable(dadosComSemanaAnterior);
+}
 }
 
 function varMes(atual, campo) {
