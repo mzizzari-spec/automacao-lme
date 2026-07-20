@@ -132,6 +132,42 @@ def obter_dados_mes_atual(client):
     except Exception as e:
         print(f"⚠️  Historico não encontrado: {e}")
 
+    # Busca ultima media semanal completa do mes anterior (para variacao da primeira semana)
+    ultima_media_semana_ant = None
+    try:
+        primeiro_dia = date(ano_email, mes_email, 1)
+        while primeiro_dia.weekday() >= 5:
+            primeiro_dia += timedelta(days=1)
+        semana_iso_primeiro = primeiro_dia.isocalendar()[1]
+
+        mes_ant3 = mes_email - 1
+        ano_ant3 = ano_email
+        if mes_ant3 == 0:
+            mes_ant3 = 12
+            ano_ant3 -= 1
+        nome_aba_ant3 = f"{MESES_PT[mes_ant3-1]}/{ano_ant3}"
+        try:
+            aba_ant3 = planilha.worksheet(nome_aba_ant3)
+            dados_ant3 = aba_ant3.get_all_values()
+            for idx_l, linha in enumerate(dados_ant3):
+                if not linha or linha[0] != "Média Semana":
+                    continue
+                # Verifica se esta media semana eh da semana compartilhada
+                for l_ant in reversed(dados_ant3[:idx_l]):
+                    if l_ant and len(l_ant) > 2 and l_ant[2] in ("Real", "Projetado") and l_ant[0]:
+                        try:
+                            partes = l_ant[0].split("/")
+                            d = date(int(partes[2]), int(partes[1]), int(partes[0]))
+                            if d.isocalendar()[1] != semana_iso_primeiro:
+                                ultima_media_semana_ant = linha
+                            break
+                        except:
+                            break
+        except:
+            pass
+    except Exception as e:
+        print(f"Aviso: nao foi possivel buscar ultima media semanal: {e}")
+
     # Busca dias do mes anterior na mesma semana ISO do primeiro dia do mes
     dias_semana_anterior = []
     try:
@@ -172,10 +208,10 @@ def obter_dados_mes_atual(client):
     except Exception as e:
         print(f"Aviso: nao foi possivel buscar dias do mes anterior: {e}")
 
-    return dados, nome_aba, media_real_ant, dias_semana_anterior
+    return dados, nome_aba, media_real_ant, dias_semana_anterior, ultima_media_semana_ant
 
 
-def gerar_html_email(dados, nome_mes, media_real_ant=None, dias_semana_anterior=None):
+def gerar_html_email(dados, nome_mes, media_real_ant=None, dias_semana_anterior=None, ultima_media_semana_ant=None):
     hoje = datetime.now()
 
     linhas_dias = [l for l in dados[1:] if len(l) > 2 and l[2] in ("Real", "Projetado")]
@@ -271,8 +307,11 @@ def gerar_html_email(dados, nome_mes, media_real_ant=None, dias_semana_anterior=
             </tr>"""
 
         elif l[0] == "Média Semana":
-            # Calcula variação em relação à semana anterior
-            sem_ant = semanas[semana_idx - 1] if semana_idx > 0 else None
+            # Para a primeira semana, usa ultima media semanal completa do mes anterior
+            if semana_idx == 0 and ultima_media_semana_ant:
+                sem_ant = ultima_media_semana_ant
+            else:
+                sem_ant = semanas[semana_idx - 1] if semana_idx > 0 else None
 
             def td_sem(col, dec=2, linha=l):
                 val = linha[col] if len(linha) > col else ""
@@ -403,8 +442,8 @@ def main():
     print(f"Iniciando envio — {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     print("=" * 50)
     client = conectar_google_sheets()
-    dados, nome_mes, media_real_ant, dias_semana_anterior = obter_dados_mes_atual(client)
-    html = gerar_html_email(dados, nome_mes, media_real_ant, dias_semana_anterior)
+    dados, nome_mes, media_real_ant, dias_semana_anterior, ultima_media_semana_ant = obter_dados_mes_atual(client)
+    html = gerar_html_email(dados, nome_mes, media_real_ant, dias_semana_anterior, ultima_media_semana_ant)
     enviar_email(html, nome_mes)
     print("✅ Concluído!")
 
