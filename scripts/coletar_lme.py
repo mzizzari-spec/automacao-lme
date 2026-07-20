@@ -236,6 +236,93 @@ def obter_ultimo_valor_mes_anterior(planilha, ano, mes):
         pass
     return None
 
+def obter_dias_semana_anterior_ao_mes(planilha, ano, mes):
+    """Busca dias do mes anterior que pertencem a mesma semana ISO do primeiro dia do mes."""
+    mes_ant = mes - 1
+    ano_ant = ano
+    if mes_ant == 0:
+        mes_ant = 12
+        ano_ant -= 1
+
+    # Primeiro dia util do mes atual
+    primeiro_dia = date(ano, mes, 1)
+    while primeiro_dia.weekday() >= 5:
+        primeiro_dia += timedelta(days=1)
+
+    semana_iso_primeiro = primeiro_dia.isocalendar()[1]
+
+    # Se o primeiro dia for segunda-feira, nao ha dias anteriores na mesma semana
+    if primeiro_dia.weekday() == 0:
+        return []
+
+    # Busca dados do mes anterior
+    nome = nome_aba(ano_ant, mes_ant)
+    dias_anteriores = []
+    try:
+        aba_ant = planilha.worksheet(nome)
+        dados_ant = aba_ant.get_all_values()
+        for linha in dados_ant[1:]:
+            if not linha or len(linha) < 3:
+                continue
+            if linha[2] not in ("Real", "Projetado"):
+                continue
+            if not linha[0]:
+                continue
+            try:
+                partes = linha[0].split("/")
+                d = date(int(partes[2]), int(partes[1]), int(partes[0]))
+                if d.isocalendar()[1] == semana_iso_primeiro and d < primeiro_dia:
+                    dias_anteriores.append(linha)
+            except:
+                continue
+    except:
+        pass
+
+    return dias_anteriores
+
+
+def obter_ultima_media_semana_completa(planilha, ano, mes):
+    """Busca a ultima media semanal completa do mes anterior (excluindo semana compartilhada)."""
+    mes_ant = mes - 1
+    ano_ant = ano
+    if mes_ant == 0:
+        mes_ant = 12
+        ano_ant -= 1
+
+    # Primeiro dia do mes atual
+    primeiro_dia = date(ano, mes, 1)
+    semana_iso_primeiro = primeiro_dia.isocalendar()[1]
+
+    nome = nome_aba(ano_ant, mes_ant)
+    ultima_media = None
+    try:
+        aba_ant = planilha.worksheet(nome)
+        dados_ant = aba_ant.get_all_values()
+        # Busca todas as linhas de Media Semana que nao sejam da semana compartilhada
+        for linha in dados_ant:
+            if not linha or linha[0] != "Média Semana":
+                continue
+            # Verifica se essa media semana e da semana compartilhada
+            # buscando qual semana ISO ela representa
+            # Para isso, olha a linha imediatamente antes
+            idx = dados_ant.index(linha)
+            # Pega a ultima linha de dia antes dessa media
+            for l in reversed(dados_ant[:idx]):
+                if l and len(l) > 2 and l[2] in ("Real", "Projetado") and l[0]:
+                    try:
+                        partes = l[0].split("/")
+                        d = date(int(partes[2]), int(partes[1]), int(partes[0]))
+                        if d.isocalendar()[1] != semana_iso_primeiro:
+                            ultima_media = linha
+                        break
+                    except:
+                        break
+    except:
+        pass
+
+    return ultima_media
+
+
 def recalcular_aba(planilha, aba, ano, mes):
     """Recalcula toda a aba com variações, médias semanais e resumo mensal."""
     todos_registros = aba.get_all_values()
@@ -303,9 +390,14 @@ def recalcular_aba(planilha, aba, ano, mes):
                 "dia_semana": dias_semana_nomes[d.weekday()],
             }
 
+    # Busca dias do mes anterior na mesma semana ISO do primeiro dia
+    dias_mes_anterior_semana = obter_dias_semana_anterior_ao_mes(planilha, ano, mes)
+    # Ultima media semanal completa do mes anterior (para variacao da primeira semana)
+    ultima_media_semana_mes_ant = obter_ultima_media_semana_completa(planilha, ano, mes)
+
     # Monta linhas com variações e médias semanais
     todas_linhas = [CABECALHO]
-    semana_atual = []
+    semana_atual = list(dias_mes_anterior_semana)  # inicia com dias do mes anterior se houver
     num_semana_anterior = None
     valor_anterior = ultimo_mes_ant
 
@@ -365,10 +457,10 @@ def recalcular_aba(planilha, aba, ano, mes):
                      proximo_dia_util.isocalendar()[1] != num_semana)
 
         if fim_semana and semana_atual:
-            # Busca média da semana anterior nas linhas já calculadas
+            # Para a primeira semana, usa a ultima media semanal completa do mes anterior
             media_anterior = next(
                 (l for l in reversed(todas_linhas) if l and l[0] == "Média Semana"),
-                None
+                ultima_media_semana_mes_ant
             )
             media_linha = calcular_media_semana(semana_atual, media_anterior)
             todas_linhas.append(media_linha)
