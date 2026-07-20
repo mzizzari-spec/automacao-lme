@@ -458,7 +458,9 @@ function renderTable(dados) {
   var linhas = linhasFinais.map(function(item) {
     if (item.tipo === 'dia') {
       var r = item.r;
-      return '<tr>' +
+      var mDia = r['M\u00eas'] || r['Mes'] || null;
+      var estiloMesAnterior = (mDia && mDia !== mes) ? ' style="opacity:0.45;"' : '';
+      return '<tr' + estiloMesAnterior + '>' +
         '<td>' + (r['Data']||'') + '</td><td>' + (r['Dia da Semana']||'') + '</td>' +
         '<td><span class="badge ' + (r['Tipo']==='Real'?'badge-real':'badge-proj') + '">' + r['Tipo'] + '</span></td>' +
         '<td>' + fmt(r[c1],2) + '</td><td class="center">' + fmtVar(r[vc1]) + '</td>' +
