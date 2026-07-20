@@ -400,6 +400,25 @@ function renderTable(dados) {
   var semanaAtual = [], linhasTabela = [], semanaNum = null;
   var dadosParaCalculo = dados; // todos os dias incluindo mes anterior para media semanal
 
+  var dadosParaCalculo = dados; // todos os dias incluindo mes anterior para media semanal
+
+  function medSemana(arr, campo) {
+    var vals = arr.map(function(r) { return toNum(r[campo]); }).filter(function(v) { return v !== null; });
+    return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+  }
+
+  function medSemanaDolar(arr) {
+    var vals = [];
+    arr.forEach(function(r, i) {
+      var v = toNum(r['D\u00f3lar (R$/US$)']);
+      var varDol = toNum(r['Var. D\u00f3lar']);
+      if (v !== null && (i === 0 || (varDol !== null && varDol !== 0) || r['Tipo'] === 'Projetado')) {
+        vals.push(v);
+      }
+    });
+    return vals.length ? vals.reduce(function(a,b){return a+b;},0)/vals.length : null;
+  }
+
   function getWeekNumber(d) {
     var date = new Date(d.getTime());
     date.setHours(0, 0, 0, 0);
