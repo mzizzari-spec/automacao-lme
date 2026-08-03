@@ -103,7 +103,18 @@ def obter_dados_mes_atual(client):
     try:
         aba = planilha.worksheet(nome_aba)
     except gspread.WorksheetNotFound:
-        raise ValueError(f"Aba '{nome_aba}' não encontrada!")
+        # Se a aba do mes atual nao existe, usa o mes anterior
+        mes_fb = mes_email - 1
+        ano_fb = ano_email
+        if mes_fb == 0:
+            mes_fb = 12
+            ano_fb -= 1
+        nome_aba = f"{MESES_PT[mes_fb-1]}/{ano_fb}"
+        try:
+            aba = planilha.worksheet(nome_aba)
+            print(f"Aba do mes atual nao encontrada, usando {nome_aba}")
+        except gspread.WorksheetNotFound:
+            raise ValueError(f"Aba '{nome_aba}' nao encontrada!")
 
     dados = aba.get_all_values()
 
